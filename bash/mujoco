@@ -1,0 +1,5 @@
+#/usr/bin/env bash
+
+cd /home/bara/.mujoco/mujoco200/bin
+
+./simulate '/home/bara/PycharmProjects/Garage/panda/insert_base.xml'

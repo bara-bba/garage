@@ -1,0 +1,7 @@
+#/usr/bin/env bash
+
+xdg-open 'http://localhost:6006'
+
+cd /home/bara/PycharmProjects/RL_insertion_Camozzi/scripts
+
+tensorboard --logdir=data/local --load_fast=false

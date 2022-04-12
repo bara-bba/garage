@@ -1,0 +1,157 @@
+<mujoco>
+
+    <compiler angle="radian"/>
+
+    <option cone="elliptic">
+        <flag gravity="disable"/>
+    </option>
+
+    <asset>
+        <texture name="texplane" type="2d" builtin="checker" rgb1=".2 .3 .4" rgb2=".1 0.15 0.2"
+                width="512" height="512"/>
+        <material name="MatGnd" reflectance="0.5" texture="texplane" texrepeat="1 1" texuniform="true"/>
+
+        <!-- BASE -->
+        <mesh name="mesh_00" file="stl/mesh/00.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_01" file="stl/mesh/01.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_02" file="stl/mesh/02.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_03" file="stl/mesh/03.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_04" file="stl/mesh/04.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_05" file="stl/mesh/05.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_06" file="stl/mesh/06.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_07" file="stl/mesh/07.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_08" file="stl/mesh/08.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_09" file="stl/mesh/09.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_10" file="stl/mesh/10.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_11" file="stl/mesh/11.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_12" file="stl/mesh/12.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_13" file="stl/mesh/13.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_14" file="stl/mesh/14.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_15" file="stl/mesh/15.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_16" file="stl/mesh/16.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_17" file="stl/mesh/17.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_18" file="stl/mesh/18.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_19" file="stl/mesh/19.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_20" file="stl/mesh/20.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_21" file="stl/mesh/21.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_22" file="stl/mesh/22.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_23" file="stl/mesh/23.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_24" file="stl/mesh/24.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_25" file="stl/mesh/25.stl" scale="0.001 0.001 0.001"/>
+        <mesh name="mesh_26" file="stl/mesh/26.stl" scale="0.001 0.001 0.001"/>
+
+        <!-- INSERT -->
+        <mesh name="insert" file="stl/insert.stl" scale='0.00093 0.00093 0.001'/>
+
+    </asset>
+
+    <visual>
+		<scale framewidth="0.05" framelength="0.8" jointwidth="0.05" jointlength="0.8" actuatorwidth="0.05" actuatorlength="0.8" forcewidth="0.1" contactwidth="0.1"/>
+	</visual>
+
+    <default>
+        <geom condim="4"/>
+        <default class="insert">
+            <joint pos="0 0 0" limited="true" damping="100"/>
+                <position forcelimited="true" ctrllimited="true" user="1002 40 2001 -0.005 0.005"/>
+                <default class="visual">
+                <geom contype="0" conaffinity="0" group="0" type="mesh" rgba=".95 .99 .92 1" mass="0"/>
+            </default>
+
+            <default class="collision">
+                <geom contype="1" conaffinity="1" group="3" type="mesh" rgba=".5 .6 .7 1"/>
+            </default>
+
+            <default class="insert_finger">
+                <joint damping="0" armature='5'/>
+            </default>
+        </default>
+    </default>
+
+    <worldbody>
+        <light pos="0 0 1000" castshadow="false"/>
+
+        <!-- FLOOR -->
+        <geom name="ground" pos="0 0 0" size="5 5 10" material="MatGnd" type="plane" contype="1" conaffinity="1"/>
+
+        <!-- TABLE -->
+        <!--geom name="wrk_table" pos="0 0 0.2" type="box" mass="90" size=".2 .2 .2" rgba="0.9 0.9 0.9 1" contype="1" conaffinity="1"/-->
+
+        <!--  BASE  -->
+		<body name="base" pos="0 0 .45">
+			<!--geom type="cylider" size="0.02 0.05" rgba=".9 0 0 .5" contype="8" conaffinity="8"/-->
+            <site name="base_site" size="0.002" pos="0 0 0.0094" rgba="0.9529411765 0.8 0.03529411765 0.5"/>
+
+            <geom pos="0 0 0" class="visual" mesh="mesh_00" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_01" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_02" condim="1" contype="1" mass="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_03" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_04" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_05" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_06" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_07" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_08" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_09" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_10" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_11" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_12" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_13" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_14" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_15" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_16" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_17" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_18" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_19" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_20" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_21" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_22" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_23" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_24" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_25" condim="1" contype="1"/>
+            <geom pos="0 0 0" class="visual" mesh="mesh_26" condim="1" contype="1"/>
+
+ 		</body>
+
+        <!-- EE -->
+        <body name="insert" pos="0 0 0.68" euler="3.14159265359 0 0">
+
+            <site name="ee_site" pos="0 0 0" size="0.01, 0.01, 0.01" euler="0 0 -1.57"/>
+
+            <joint name="insert_x" pos="0 0 0" type="slide" axis="1 0 0" frictionloss="0" damping="100" range="-1 1"/>
+            <joint name="insert_y" pos="0 0 0" type="slide" axis="0 1 0" frictionloss="0" damping="100" range="-1 1"/>
+            <joint name="insert_z" pos="0 0 0" type="slide" axis="0 0 1" frictionloss="0" damping="100" range="-1 1"/>
+
+            <joint name="insert_ball_1" pos="0 0 0" type="hinge" axis="1 0 0" frictionloss="0" damping="100" range="-3 3"/>
+            <joint name="insert_ball_2" pos="0 0 0" type="hinge" axis="0 1 0" frictionloss="0" damping="100" range="-3 3"/>
+            <joint name="insert_ball_3" pos="0 0 0" type="hinge" axis="0 0 1" frictionloss="0" damping="100" range="-3 3"/>
+
+            <!-- COMPONENT -->
+            <body name="piston" pos="0 0 0.147">
+                <geom pos="0 0 0" euler="0 0 0" class="visual" mesh="insert" conaffinity="1" contype="1" mass="0.3"/>
+                <!--geom type="cylinder" size="0.02 0.05" mass="0.1"/-->
+                <site name="insert_site" size="0.002" pos="0 0 0.035" rgba="0.9529411765 0.8 0.03529411765 1"/>
+
+            </body>
+
+        </body>
+
+    </worldbody>
+
+    <actuator>
+
+        <position name="position_x" joint="insert_x" class="insert_finger" gear="1" kp="1000" forcerange="-50 50" ctrllimited="false" ctrlrange="-0.001 0.001"/>
+        <position name="position_y" joint="insert_y" class="insert_finger" gear="1" kp="1000" forcerange="-50 50" ctrllimited="false" ctrlrange="-0.001 0.001"/>
+        <position name="position_z" joint="insert_z" class="insert_finger" gear="1" kp="1000" forcerange="-50 50" ctrllimited="false" ctrlrange="-0.001 0.001"/>
+
+        <position name="ball_1" joint="insert_ball_1" class="insert_finger" kp="100" forcerange="-50 50" ctrllimited="false" ctrlrange="-0.001 0.001"/>
+        <position name="ball_2" joint="insert_ball_2" class="insert_finger" kp="100" forcerange="-50 50" ctrllimited="false" ctrlrange="-0.001 0.001"/>
+        <position name="ball_3" joint="insert_ball_3" class="insert_finger" kp="100" forcerange="-50 50" ctrllimited="false" ctrlrange="-0.001 0.001"/>
+
+    </actuator>
+
+    <sensor>
+        <force name="ee_force" site="ee_site"/>
+        <torque name="ee_torque" site="ee_site"/>
+    </sensor>
+
+</mujoco>

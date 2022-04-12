@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mujoco model="gripper_position">
+
+	<!-- SET MUJOCO PARAMETERS -->
+    <compiler angle="degree" coordinate="local"></compiler>
+
+	<!-- SET CLASSES DEFAULTS-->
+	<default class="main">
+
+		<default class="component">
+			<geom friction="0.4 0.4 0.4"></geom>
+		</default>
+
+		<default class="finger">
+			<geom margin="0.001" type="box" user="0" rgba="0.356 0.361 0.376 1.0"></geom>
+			<joint damping="10" limited="true" type="slide"></joint>
+		</default>
+	</default>
+
+	<visual>
+		<scale framewidth="0.05" framelength="0.8" jointwidth="0.05" jointlength="0.8" actuatorwidth="0.05" actuatorlength="0.8" forcewidth="0.1" contactwidth="0.1"/>
+	</visual>
+
+	<!-- SET BODIES PARAMETERS -->
+	<worldbody>
+
+		<!-- FLOOR -->
+		<geom name="floor" type="plane" pos="0. 0. 0." size="3.3 3.3 0.5" rgba="1. 1. 0 1" contype="1" conaffinity="1"/>
+
+		<!-- TABLE -->
+		<body name="wrk_table" pos="0 0 0.2" mocap="true">
+			<geom type="box" mass="90" size=".2 .2 .2" rgba="0 0 0 1" contype="1" conaffinity="1"/>
+		</body>
+
+		<!--  HOLE  -->
+		<body name="wrk_hole" pos="0 0 .45" mocap="true">
+			<geom pos="-.035 0 0" size="0.008 0.05 0.05" type="box" group="1"/>
+			<geom pos=".035 0 0" size="0.008 0.05 0.05" type="box" group="1"/>
+			<geom pos="0 -.035 0" size="0.05 0.008 0.05" type="box" group="1"/>
+			<geom pos="0 .035 0" size="0.05 0.008 0.05" type="box" group="1"/>
+		</body>
+
+		<!-- COMPONENT -->
+		<body childclass="component" name="component" pos="0 0 .73">
+			<joint type="free" name="component"/>
+			<geom size="0.02 0.02 0.04" type="box" friction="0 0 0" rgba="1 1 0 1"/>
+		</body>
+
+		<!--  TARGET  -->
+		<body name="target" pos="0 0 .45" mocap="true">
+			<geom type="box" size=".03 .03 .05" rgba=".9 0 0 .5" contype="8" conaffinity="8"/>
+		</body>
+
+		<!--  SITE TO BUILD -->
+		<site name="target" pos="0 0 .4" rgba="1 1 1 1"/>
+		<site pos="0 0 0" rgba="1 1 1 1"/>
+
+		<!-- GRIPPER -->
+		<body childclass="finger" name="gripper" pos="0 0 0.8">
+			<joint type="slide" name="posX" axis="1 0 0" range="-1 1"/>
+			<joint type="slide" name="posY" axis="0 1 0" range="-1 1"/>
+			<joint type="slide" name="posZ" axis="0 0 1" range="-1 1"/>
+			<joint type="ball" name="wrist" range="0 90"/>
+
+			<geom type="box" size="0.02 0.1 0.01"/>
+
+			<body childclass="finger" name="l_gripper_finger_link" pos="0 -0.092 -0.05" euler="0 90 0">
+				<inertial diaginertia="0.1 0.1 0.1" mass="0.00001" pos="0 0 0"></inertial>
+				<joint axis="0 1 0" name="l_gripper_finger_joint" range="0 0.15"></joint>
+				<geom pos="0 0.063 0" size="0.04 0.008 0.015" type="box" name="l_gripper_finger_link" friction="10 10 10"></geom>
+			</body>
+
+			<body childclass="finger" name="r_gripper_finger_link" pos="0 0.092 -0.05" euler="0 90 0">
+				<inertial diaginertia="0.1 0.1 0.1" mass="0.00001" pos="0 0 0"></inertial>
+				<joint axis="0 -1 0" name="r_gripper_finger_joint" range="0 0.15"></joint>
+				<geom pos="0-0.063 0" size="0.04 0.008 0.015" type="box" name="r_gripper_finger_link" friction="10 10 10"></geom>
+			</body>
+		</body>
+
+	</worldbody>
+
+    <actuator>
+		<position ctrllimited="true" ctrlrange="-0.52399 .523599" joint="posX" kp="1000" name="posX"></position>
+		<position ctrllimited="true" ctrlrange="-0.52399 .523599" joint="posY" kp="1000" name="posY"></position>
+		<position ctrllimited="true" ctrlrange="-0.52399 .523599" joint="posZ" kp="1000" name="posZ"></position>
+
+		<position ctrllimited="true" ctrlrange="-0.52399 .523599" joint="wrist" kp="1000" name="wrist1" gear="1 0 0"></position>		<!-- ctrlrange is still in radians! -->
+		<position ctrllimited="true" ctrlrange="-0.52399 .523599" joint="wrist" kp="1000" name="wrist2" gear="0 1 0"></position>		<!-- ctrlrange is still in radians! -->
+		<position ctrllimited="true" ctrlrange="-0.52399 .523599" joint="wrist" kp="1000" name="wrist3" gear="0 0 1"></position>		<!-- ctrlrange is still in radians! -->
+
+		<motor ctrllimited="true" ctrlrange="-1 1" joint="l_gripper_finger_joint" gear="1000" name="l_gripper_finger_joint" user="1"></motor>
+		<motor ctrllimited="true" ctrlrange="-1 1" joint="r_gripper_finger_joint" gear="1000" name="r_gripper_finger_joint" user="1"></motor>
+	</actuator>
+
+</mujoco>
