@@ -2,6 +2,6 @@
 
 xdg-open 'http://localhost:6006'
 
-cd /home/bara/PycharmProjects/RL_insertion_Camozzi/scripts
+cd /home/bara/PycharmProjects/garage/
 
 tensorboard --logdir=data/local --load_fast=false

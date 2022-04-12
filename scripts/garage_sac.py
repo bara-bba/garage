@@ -51,7 +51,7 @@ def garage_sac_panda_position(ctxt=None, seed=1):
     deterministic.set_seed(seed)
 
     trainer = Trainer(snapshot_config=ctxt)
-    env = normalize(GymEnv(PandaEnv(), max_episode_length=1000))
+    env = normalize(GymEnv(PandaEnv(), max_episode_length=1000), normalize_obs=True)
 
     policy = TanhGaussianMLPPolicy(
         env_spec=env.spec,

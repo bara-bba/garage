@@ -7,7 +7,7 @@ from gym.envs.mujoco import mujoco_env
 class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
     def __init__(self):
         self.counter = 0
-        mujoco_env.MujocoEnv.__init__(self, "/home/bara/PycharmProjects/RL_insertion_Camozzi/panda/insert_base.xml", 100)
+        mujoco_env.MujocoEnv.__init__(self, "/home/bara/PycharmProjects/garage/panda/insert_base.xml", 100)
         utils.EzPickle.__init__(self)
 
     def step(self, action):
@@ -26,7 +26,7 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
             done = False
             reward_done = 0
 
-        reward_pos = -dist
+        reward_pos = -dist*1.8
         reward = reward_pos + reward_done
 
         self.counter += 1
@@ -47,7 +47,7 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         ).astype(np.float32).flatten()
 
     def reset_model(self):
-        c = 0.01
+        c = 0.04
         self.counter = 0
         qpos = self.init_qpos + self.np_random.uniform(low=-c, high=c, size=self.model.nq)
         qvel = np.zeros(self.model.nv)
