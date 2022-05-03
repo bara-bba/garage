@@ -1,8 +1,10 @@
 import gym
 import numpy as np
 from scipy.signal import iirfilter, sosfilt, zpk2sos
+import gym
 
 # from https://docs.obspy.org
+
 def lowpass(data, freq, df, corners=4, zerophase=False):
     """
     Butterworth-Lowpass Filter.

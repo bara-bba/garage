@@ -22,14 +22,6 @@
         <mesh name="mesh_07" file="stl/mesh/07.stl" scale="0.001 0.001 0.001"/>
         <mesh name="mesh_08" file="stl/mesh/08.stl" scale="0.001 0.001 0.001"/>
         <mesh name="mesh_09" file="stl/mesh/09.stl" scale="0.001 0.001 0.001"/>
-        <mesh name="mesh_02" file="stl/mesh/02.stl" scale="0.001 0.001 0.001"/>
-        <mesh name="mesh_03" file="stl/mesh/03.stl" scale="0.001 0.001 0.001"/>
-        <mesh name="mesh_04" file="stl/mesh/04.stl" scale="0.001 0.001 0.001"/>
-        <mesh name="mesh_05" file="stl/mesh/05.stl" scale="0.001 0.001 0.001"/>
-        <mesh name="mesh_06" file="stl/mesh/06.stl" scale="0.001 0.001 0.001"/>
-        <mesh name="mesh_07" file="stl/mesh/07.stl" scale="0.001 0.001 0.001"/>
-        <mesh name="mesh_08" file="stl/mesh/08.stl" scale="0.001 0.001 0.001"/>
-        <mesh name="mesh_09" file="stl/mesh/09.stl" scale="0.001 0.001 0.001"/>
         <mesh name="mesh_10" file="stl/mesh/10.stl" scale="0.001 0.001 0.001"/>
         <mesh name="mesh_11" file="stl/mesh/11.stl" scale="0.001 0.001 0.001"/>
         <mesh name="mesh_12" file="stl/mesh/12.stl" scale="0.001 0.001 0.001"/>
@@ -151,9 +143,9 @@
         <position name="position_y" joint="insert_y" class="insert_finger" gear="1" kp="1000" forcerange="-30 30" ctrllimited="false" ctrlrange="-0.001 0.001"/>
         <position name="position_z" joint="insert_z" class="insert_finger" gear="1" kp="1000" forcerange="-30 30" ctrllimited="false" ctrlrange="-0.001 0.001"/>
 
-        <position name="ball_1" joint="insert_ball_1" class="insert_finger" kp="100" forcerange="-30 30" ctrllimited="false" ctrlrange="-0.001 0.001"/>
-        <position name="ball_2" joint="insert_ball_2" class="insert_finger" kp="100" forcerange="-30 30" ctrllimited="false" ctrlrange="-0.001 0.001"/>
-        <position name="ball_3" joint="insert_ball_3" class="insert_finger" kp="100" forcerange="-30 30" ctrllimited="false" ctrlrange="-0.001 0.001"/>
+        <position name="ball_1" joint="insert_ball_1" class="insert_finger" kp="1000" forcerange="-30 30" ctrllimited="false" ctrlrange="-0.001 0.001"/>
+        <position name="ball_2" joint="insert_ball_2" class="insert_finger" kp="1000" forcerange="-30 30" ctrllimited="false" ctrlrange="-0.001 0.001"/>
+        <position name="ball_3" joint="insert_ball_3" class="insert_finger" kp="1000" forcerange="-30 30" ctrllimited="false" ctrlrange="-0.001 0.001"/>
 
     </actuator>
 

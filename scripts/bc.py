@@ -2,11 +2,9 @@ from garage.experiment import Snapshotter
 from panda_env import PandaEnv
 
 snapshotter = Snapshotter()
-snapshot = snapshotter.load('/home/bara/PycharmProjects/garage/data/local/experiment/garage_sac_panda_position_0')
+snapshot = snapshotter.load('/home/bara/PycharmProjects/garage/data/local/experiment/garage_sac_panda_position')
 
-expert = snapshot['algo'].policy
-env = snapshot['env']  # We assume env is the same
-env = PandaEnv()
+from ur5_env_old import UR5Env
 
 # Setup new experiment
 from garage import wrap_experiment
@@ -34,9 +32,10 @@ def bc_with_pretrained_expert(ctxt=None):
               policy_lr=1e-2,
               loss='log_prob')
     trainer.setup(algo, env)
-    trainer.train(100, batch_size=batch_size, plot=True)
+    trainer.train(10, batch_size=batch_size)
 
 with tf.compat.v1.Session() as sess:
     expert = snapshot['algo'].policy
-    env = snapshot['env']  # We assume env is the same
+    # env = snapshot['env']  # We assume env is the same
+    env = UR5Env()
     bc_with_pretrained_expert()

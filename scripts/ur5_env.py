@@ -1,24 +1,23 @@
 import numpy as np
-from collections import OrderedDict
+import sys
 from scipy.spatial.transform import Rotation as R
-
-import gym
-from gym import utils
-from gym import error, spaces
-from gym.utils import seeding
+from collections import OrderedDict
 
 import rtde_control
 import rtde_receive
 
-DEFAULT_SIZE = 500
+import gym
+from gym import utils, error, spaces
+from gym.utils import seeding
 
+UR5IP = "192.168.0.102"
 
 # Connection
-c = rtde_control.RTDEControlInterface("192.168.0.102")
-r = rtde_receive.RTDEReceiveInterface("192.168.0.102")
+c = rtde_control.RTDEControlInterface(UR5IP)
+r = rtde_receive.RTDEReceiveInterface(UR5IP)
 
 TCPdmax, TCPddmax = 0.05, 0.01
-
+ref_frame = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 
 def convert_observation_to_space(observation):
     if isinstance(observation, dict):
@@ -31,169 +30,217 @@ def convert_observation_to_space(observation):
             )
         )
     elif isinstance(observation, np.ndarray):
-        low = np.full(observation.shape, -float("inf"), dtype=np.float32)
-        high = np.full(observation.shape, float("inf"), dtype=np.float32)
-        space = spaces.Box(low, high, dtype=observation.dtype)
+        low = np.full(observation.shape, -float("inf"))
+        high = np.full(observation.shape, float("inf"))
+        space = spaces.Box(low, high, dtype=np.float32)
     else:
         raise NotImplementedError(type(observation), observation)
 
     return space
 
+
+def initialize_target():
+
+    c.teachMode()
+
+    print(f"Move to final position. (Enter)")
+    choice = None
+    while choice != '':
+        choice = input().lower()
+
+    c.endTeachMode()
+
+    target = r.getActualTCPPose()
+    print(f"target: {target}")
+
+    c.teachMode()
+
+    print(f"Move to initial position. (Enter)")
+    choice = None
+
+    while choice != '':
+        choice = input().lower()
+
+    c.endTeachMode()
+
+    init_qpos = r.getActualTCPPose()
+    init_qvel = r.getActualTCPSpeed()
+    print(f"qpos_init: {init_qpos}")
+
+    return init_qpos, init_qvel, target
+
+
+def move(action):
+
+    global ref_frame
+
+    pose = r.getActualTCPPose()
+
+    xyz = R.from_euler('xyz', action[3:6])
+    rot = R.from_rotvec(pose[3:6])
+    frame_rotated = xyz.apply(rot.apply(ref_frame))
+    rot = R.from_matrix(frame_rotated)
+    # print(f"Pose: {pose}")
+
+    pose[0:3] += action[0:3]    #nOOOOOOOOOOOOOOOOOOOOOOOOOOO dio can, fai la transpose
+    pose[3:6] = rot.as_rotvec()
+
+    # print(f"Action: {action}")
+    # print(f"Target pose: {pose}")
+    c.moveL(pose, TCPdmax, TCPddmax)
+
+
 class UR5Env(gym.Env, utils.EzPickle):
     """Real UR5 Environment Implementation"""
-
     def __init__(self):
         utils.EzPickle.__init__(self)
 
-        self.diff_vector = np.array([0.0, 0.0, 0.0], np.float32)
-        print(self.diff_vector.shape)
-        self.counter = 0
+        c.zeroFtSensor()
 
-        self.offset = np.array([0, 0, 0.05, 0, 0, 0], np.float32)
-        self.init_qpos = r.getActualTCPPose()           #ROT_VECTOR
-        self.init_qvel = r.getActualTCPSpeed()
+        self.init_qpos, self.init_qvel, target = initialize_target()
+
+        self.diff_vector = np.array([0, 0, 0], np.float32)
+        self.offset = np.array([0, 0, 0.05], np.float32)
+
+        self.metadata = {
+            "render.modes": ["human"],
+        }
+
+        self.target = target[:3]
+
+        self.counter = 0
 
         try:
             c.moveL(self.init_qpos)
             print("InitQPose: " + str(self.init_qpos))
-            c.moveL(self.init_qpos - self.offset)
-            c.moveL(self.init_qpos + self.offset)
+            c.moveL(np.concatenate((self.init_qpos[:3] - self.offset, self.init_qpos[3:])))
+            c.moveL(self.init_qpos)
             print("QPose: " + str(self.init_qpos))
         except:
             raise PermissionError
 
         self._set_action_space()
-        self._set_sample_space()
-        self._set_joint_space()
-
-        # action = self.sample_space.sample()
-        # print("ActionS: " + str(action))
 
         action = self.action_space.sample()
 
+        self.exec = 0
         observation, _reward, done, _info = self.step(action)
         assert not done
-
         self._set_observation_space(observation)
+        print(self.observation_space)
 
         self.seed()
 
 
     def step(self, action):
 
-        # STEP
-        # print("STATE" + str(self.data.qpos.astype(np.float32)))
-        # print("ACTION" + str(action))
+        print(f"action: {action}")
 
-        self.do_simulation(action)
-        print(self.counter)
-        self.counter += 1
-        target = (self.init_qpos - self.offset)
-        TCPPose = r.getActualTCPPose()
+        tcp_pose = np.asarray(r.getActualTCPPose())
+        move(action)
 
-        print("TCPPose: " + str(TCPPose))
+        self.diff_vector = tcp_pose[:3] - self.target
 
-        rot_vec = R.from_rotvec(TCPPose[2:5])
-        xyz_vec = rot_vec.as_euler('xyz')
+        dist = np.linalg.norm(self.diff_vector)
 
-        TCPPose[3] = xyz_vec[0]
-        TCPPose[4] = xyz_vec[1]
-        TCPPose[5] = xyz_vec[2]
-
-        print("TCPPoseXYZ: " + str(TCPPose))
-
-        self.diff_vector[0] = TCPPose[0] - target[0]
-        self.diff_vector[1] = TCPPose[1] - target[1]
-        self.diff_vector[2] = TCPPose[2] - target[2]
-
-        dist = np.linalg.norm(self.diff_vector)*100                 # Centimeters
-
-        # REWARD
-        if dist < 0.3:                                              # Millimiters
-            reward_pos = 20
+        if dist < 0.005:  # Millimiters
             done = True
+            print("DONE!!!!!!!!!!!!!")
+            reward_done = 100
+
         else:
-            reward_pos = 0
             done = False
+            reward_done = 0
 
-        reward_dist = -dist
-        reward_action = -self.counter/20
-        reward = 1.5*reward_dist + reward_pos + reward_action       # More contributions to rewards may be added
+        reward_pos = -dist * 1.8
+        reward = reward_pos + reward_done
 
+        self.counter += 1
+
+        info = {}
         ob = self._get_obs()
 
-        return ob, reward, done, dict(reward_pos=reward_pos, reward_action=reward_action, reward_dist=reward_dist, reward=reward)
+        print(f"Reward : {reward}")
 
-    def reset_model(self):
-        c = 0.01
-        self.set_state(
-            self.init_qpos + self.np_random.uniform(low=-c, high=c, size=6)
-        )
-        return self._get_obs(), dict()
+        return ob, reward, done, info
 
     def _get_obs(self):
-        print("TCPPose: " + str(r.getActualTCPPose()))
-        # print("TCPPoseType: " + str(np.array(r.getActualTCPPose(), np.float32)))
-        return np.concatenate(
+
+        global ref_frame
+
+        actual_pose = r.getActualTCPPose()
+
+        direction = R.from_rotvec(actual_pose[3:6])
+        direction_init = R.from_rotvec(self.init_qpos[3:6])
+
+        tcp_frame = direction.apply(ref_frame)
+        tcp_frame_init = direction_init.apply(ref_frame)
+
+        tcp_pose_init = np.concatenate([self.init_qpos[:3], direction_init.as_rotvec()])
+        tcp_pose = np.concatenate([actual_pose[:3], direction.as_rotvec()])
+        tcp_pose_inv = np.concatenate([-tcp_pose[:3], direction.inv().as_rotvec()])
+
+        pose_trans = c.poseTrans(p_from=tcp_pose_inv, p_from_to=tcp_pose_init)
+        print(f"pose_trans: {pose_trans}")
+        rotation = R.from_rotvec(pose_trans[3:6])
+
+        xyz = rotation.as_euler('xyz')
+
+        # speed = np.array(r.getActualTCPSpeed(), dtype=np.float32)
+        pose = np.asarray(actual_pose[:3]) - np.asarray(self.init_qpos[:3])
+        print(pose)
+
+        force = np.array(r.getActualTCPForce(), dtype=np.float32)
+        speed = np.zeros_like(force)
+        print(np.concatenate([pose[:3], xyz]))
+        print(f"self.diff_vector: {self.diff_vector}")
+        print(r.getRobotStatus())
+
+        obs = np.concatenate(
             [
-                np.array(r.getActualTCPPose(), np.float32).flat,
-                np.array(r.getActualTCPSpeed(), np.float32).flat,
-                np.array(r.getActualTCPForce(), np.float32).flat,
-                self.diff_vector.flat,
+                np.concatenate([pose, xyz]),
+                speed, #???/DT???????????
+                force,
+                self.diff_vector,
             ]
-        ).astype(np.float32).flatten()
-
-    def _set_action_space(self):
-        bounds = np.array([[-0.4, -0.3], [-0.4, -0.3], [0.3, 0.4], [3, 3.1], [1.0, 1.1], [-0.05, 0.05]], np.float32)
-        low, high = bounds.T
-        self.action_space = spaces.Box(low=low, high=high, dtype=np.float32)
-        return self.action_space
-
-    def _set_sample_space(self):
-        bounds = np.array([[-0.01, 0.01], [-0.01, 0.01], [-0.01, 0.01], [-0.01, 0.01], [-0.01, 0.01], [-0.01, 0.01]], np.float32)
-        low, high = bounds.T
-        self.sample_space = spaces.Box(low=low, high=high, dtype=np.float32)
-        return self.sample_space
-
-    def _set_joint_space(self):
-        bounds = np.array([[-0.4, -0.3], [-0.4, -0.3], [0.3, 0.4], [3, 3.1], [1.0, 1.1], [-0.05, 0.05]], np.float32)
-        low, high = bounds.T
-        self.joint_space = spaces.Box(low=low, high=high, dtype=np.float32)
-        return self.joint_space
-
-    def _set_observation_space(self, observation):
-        self.observation_space = convert_observation_to_space(observation)
-        return self.observation_space
+        ).astype(np.float32)
+        return obs
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
+    def reset_model(self):
+        c = 0.01
+        self.set_state(
+            self.init_qpos + self.np_random.uniform(low=-c, high=c, size=self.init_qpos.__len__())
+        )
+        return self._get_obs()
+
     def reset(self):
         c.moveL(self.init_qpos, TCPdmax, TCPddmax)
         ob = self.reset_model()
-        return ob
+        return ob, {}
 
     def set_state(self, ctrl):
         state = np.array(r.getActualTCPPose(), np.float32)
         c.moveL(ctrl, TCPdmax, TCPddmax)
 
+    def close(self):
+        print("Disconnected")
 
-    def do_simulation(self, ctrl):
+    def _set_action_space(self):
+        center = r.getActualTCPPose()
+        offset = np.ones_like(center)
+        low, high = -0.01*offset, 0.01*offset
+        self.action_space = spaces.Box(low=low, high=high, dtype=np.float32)
+        print(f"Action Space: {self.action_space}")
+        return self.action_space
 
-        xyz_vec = R.from_euler('xyz', ctrl[2:5])
-        rot_vec = xyz_vec.as_rotvec()
+    def _set_observation_space(self, observation):
+        self.observation_space = convert_observation_to_space(observation)
+        return self.observation_space
 
-        ctrl[3] = rot_vec[0]
-        ctrl[4] = rot_vec[1]
-        ctrl[5] = rot_vec[2]
 
-        ok = c.moveL(ctrl, TCPdmax, TCPddmax)
-        print("CTRL: " + str(ctrl))
-        return ok
 
-    def get_joint_xpos(self):
-        return r.getActualQ()
 
-    def state_vector(self):
-        return np.concatenate([r.getActualTCPPose(), r.getActualTCPSpeed()])

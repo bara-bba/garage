@@ -8,12 +8,15 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
     def __init__(self):
         self.counter = 0
         mujoco_env.MujocoEnv.__init__(self, "/home/bara/PycharmProjects/garage/panda/insert_base.xml", 100)
+
         utils.EzPickle.__init__(self)
 
     def step(self, action):
 
         new_action = self.sim.data.qpos + action
 
+        # print("ACTION: " + str(action))
+        # print("NEW_ACTION: " + str(new_action))
         self.do_simulation(new_action, self.frame_skip)
 
         diff_vector = self.get_site_xpos("insert_site") - self.get_site_xpos("base_site")
@@ -42,12 +45,12 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
                 self.sim.data.qpos.flat[:],
                 self.sim.data.qvel.flat[:],
                 self.sim.data.sensordata.flat[:],
-                self.get_site_xpos("insert_site") - self.get_site_xpos("base_site"),
+                (self.get_site_xpos("insert_site") - self.get_site_xpos("base_site")).flat[:],
             ]
         ).astype(np.float32).flatten()
 
     def reset_model(self):
-        c = 0.04
+        c = 0.1
         self.counter = 0
         qpos = self.init_qpos + self.np_random.uniform(low=-c, high=c, size=self.model.nq)
         qvel = np.zeros(self.model.nv)
@@ -59,4 +62,3 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
     def get_site_xpos(self, site_name):
         return self.data.get_site_xpos(site_name)
-

@@ -1,14 +1,13 @@
 import tensorflow as tf
 from garage.experiment import Snapshotter
 
-import rtde_control
-import rtde_receive
-
 from wrappers import LowPassFilterWrapper
+from garage.envs import normalize, GymEnv
 
 from ur5_env import UR5Env
+from panda_env import PandaEnv
 
-param_dir = "/home/bara/PycharmProjects/Garage/data/local/experiment/garage_sac_panda_position/"
+param_dir = "/home/bara/PycharmProjects/garage/data/local/experiment/garage_sac_panda_position/"
 snapshotter = Snapshotter()
 
 with tf.compat.v1.Session() as sess:
@@ -17,8 +16,8 @@ with tf.compat.v1.Session() as sess:
 
 policy = data['algo'].policy
 # env = LowPassFilterWrapper(UR5Env())
-env = UR5Env()
-
+# env = normalize(GymEnv(UR5Env()))
+env = normalize(GymEnv(UR5Env()))
 from garage import rollout
 
 path = rollout(env, policy)

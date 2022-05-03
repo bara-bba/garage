@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
-"""Simulates pre-learned policy."""
+"""Apply pre-learned policy to UR5."""
+
 import argparse
 import sys
+from garage.envs import normalize
+
+steps, max_steps = 0, 10
+
+param_dir = "/home/bara/PycharmProjects/garage/data/local/experiment/garage_sac_panda_position/"
 
 import cloudpickle
 import tensorflow as tf
-import gym
 
-from garage import rollout
+from garage.experiment import Snapshotter
+snapshotter = Snapshotter()
+
+from wrappers import LowPassFilterWrapper
+from ur5_env_old import UR5Env
 from panda_env import PandaEnv
-from garage.envs import GymEnv, normalize
-
 
 def query_yes_no(question, default='yes'):
     """Ask a yes/no question via raw_input() and return their answer.
@@ -47,28 +54,13 @@ def query_yes_no(question, default='yes'):
             sys.stdout.write("Please respond with 'yes' or 'no' "
                              "(or 'y' or 'n').\n")
 
-
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('file', type=str, help='path to the snapshot file')
-    parser.add_argument('--max_episode_length',
-                        type=int,
-                        default=1000,
-                        help='Max length of episode')
-    args = parser.parse_args()
-
-    # If the snapshot file use tensorflow, do:
-    # import tensorflow as tf
-    # with tf.compat.v1.Session():
-    #     [rest of the code]
     with tf.compat.v1.Session() as sess:
-        with open(args.file, 'rb') as pickle_file:
-            data = cloudpickle.load(pickle_file)
-            policy = data['algo'].policy
-            env = normalize(GymEnv(PandaEnv()))
-            while True:
-                path = rollout(env,
-                               policy,
-                               max_episode_length=args.max_episode_length,
-                               animated=True)
+        data = snapshotter.load(param_dir)
+    policy = data['algo'].policy
+    env = (PandaEnv())
+
+    from garage import rollout
+    path = rollout(env, policy)
+    print(path)
