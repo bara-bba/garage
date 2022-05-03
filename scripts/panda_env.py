@@ -47,7 +47,7 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
                 self.sim.data.sensordata.flat[:],
                 (self.get_site_xpos("insert_site") - self.get_site_xpos("base_site")).flat[:],
             ]
-        ).astype(np.float32).flatten()
+        ).astype(np.float32)
 
     def reset_model(self):
         c = 0.1

@@ -10,13 +10,18 @@ import gym
 from gym import utils, error, spaces
 from gym.utils import seeding
 
+import csv
+csv_file = open("check.csv", 'w')
+
+csv_writer = csv.writer(csv_file, delimiter=",")
+
 UR5IP = "192.168.0.102"
 
 # Connection
 c = rtde_control.RTDEControlInterface(UR5IP)
 r = rtde_receive.RTDEReceiveInterface(UR5IP)
 
-TCPdmax, TCPddmax = 0.05, 0.01
+TCPdmax, TCPddmax = 0.1, 0.05
 ref_frame = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 
 def convert_observation_to_space(observation):
@@ -70,34 +75,21 @@ def initialize_target():
     return init_qpos, init_qvel, target
 
 
-def move(action):
-
-    global ref_frame
-
-    pose = r.getActualTCPPose()
-
-    xyz = R.from_euler('xyz', action[3:6])
-    rot = R.from_rotvec(pose[3:6])
-    frame_rotated = xyz.apply(rot.apply(ref_frame))
-    rot = R.from_matrix(frame_rotated)
-    # print(f"Pose: {pose}")
-
-    pose[0:3] += action[0:3]    #nOOOOOOOOOOOOOOOOOOOOOOOOOOO dio can, fai la transpose
-    pose[3:6] = rot.as_rotvec()
-
-    # print(f"Action: {action}")
-    # print(f"Target pose: {pose}")
-    c.moveL(pose, TCPdmax, TCPddmax)
-
-
 class UR5Env(gym.Env, utils.EzPickle):
     """Real UR5 Environment Implementation"""
     def __init__(self):
         utils.EzPickle.__init__(self)
 
+        self.csv_content = ['counter', 'x', 'y', 'z', 'obs_x', 'obs_y', 'obs_z', 'reward']
+        print(r.getActualTCPForce())
         c.zeroFtSensor()
+        print(r.getActualTCPForce())
 
         self.init_qpos, self.init_qvel, target = initialize_target()
+
+        self.direction_init = R.from_rotvec(self.init_qpos[3:6])
+        self.tcp_frame_init = self.direction_init.apply(ref_frame)
+        self.tcp_pose_init = np.concatenate([self.init_qpos[:3], self.direction_init.as_rotvec()])
 
         self.diff_vector = np.array([0, 0, 0], np.float32)
         self.offset = np.array([0, 0, 0.05], np.float32)
@@ -106,22 +98,24 @@ class UR5Env(gym.Env, utils.EzPickle):
             "render.modes": ["human"],
         }
 
-        self.target = target[:3]
+        self.target = np.asarray(target[:3])
 
         self.counter = 0
-
-        try:
-            c.moveL(self.init_qpos)
-            print("InitQPose: " + str(self.init_qpos))
-            c.moveL(np.concatenate((self.init_qpos[:3] - self.offset, self.init_qpos[3:])))
-            c.moveL(self.init_qpos)
-            print("QPose: " + str(self.init_qpos))
-        except:
-            raise PermissionError
+        #
+        # try:
+        #     c.moveL(self.init_qpos)
+        #     print("InitQPose: " + str(self.init_qpos))
+        #     c.moveL(np.concatenate((self.init_qpos[:3] - self.offset, self.init_qpos[3:])))
+        #     c.moveL(self.init_qpos)
+        #     print("QPose: " + str(self.init_qpos))
+        # except:
+        #     raise PermissionError
 
         self._set_action_space()
 
         action = self.action_space.sample()
+        self.dp = np.zeros_like(action)
+        self.dtheta = np.zeros_like(action[3:6])
 
         self.exec = 0
         observation, _reward, done, _info = self.step(action)
@@ -137,7 +131,7 @@ class UR5Env(gym.Env, utils.EzPickle):
         print(f"action: {action}")
 
         tcp_pose = np.asarray(r.getActualTCPPose())
-        move(action)
+        self.move(action)
 
         self.diff_vector = tcp_pose[:3] - self.target
 
@@ -147,12 +141,16 @@ class UR5Env(gym.Env, utils.EzPickle):
             done = True
             print("DONE!!!!!!!!!!!!!")
             reward_done = 100
+            self.close()
 
         else:
             done = False
             reward_done = 0
 
+
+
         reward_pos = -dist * 1.8
+
         reward = reward_pos + reward_done
 
         self.counter += 1
@@ -160,9 +158,23 @@ class UR5Env(gym.Env, utils.EzPickle):
         info = {}
         ob = self._get_obs()
 
-        print(f"Reward : {reward}")
+        new_row = (self.counter, r.getActualTCPPose()[0], r.getActualTCPPose()[1], r.getActualTCPPose()[2], ob[0], ob[1], ob[2], reward)
+        self.csv_content = np.vstack((self.csv_content, new_row))
+
+        print(f"Reward : {reward/1.8*100}")
 
         return ob, reward, done, info
+
+    def move(self, action):
+        self.dp += action
+        xyz = R.from_euler('xyz', self.dp[3:6])
+        self.dtheta = xyz.as_rotvec()
+        pose = np.concatenate([self.dp[:3], self.dtheta])
+        dp_to_pose = c.poseTrans(p_from=self.tcp_pose_init, p_from_to=pose)
+
+        # print(f"Action: {action}")
+        # print(f"Target pose: {pose}")
+        c.moveL(dp_to_pose, TCPdmax, TCPddmax)
 
     def _get_obs(self):
 
@@ -177,33 +189,30 @@ class UR5Env(gym.Env, utils.EzPickle):
         tcp_frame_init = direction_init.apply(ref_frame)
 
         tcp_pose_init = np.concatenate([self.init_qpos[:3], direction_init.as_rotvec()])
+        tcp_pose_init_inv = np.concatenate([-direction_init.inv().apply(tcp_pose_init[:3]), direction_init.inv().as_rotvec()])
         tcp_pose = np.concatenate([actual_pose[:3], direction.as_rotvec()])
-        tcp_pose_inv = np.concatenate([-tcp_pose[:3], direction.inv().as_rotvec()])
 
-        pose_trans = c.poseTrans(p_from=tcp_pose_inv, p_from_to=tcp_pose_init)
+        pose_trans = c.poseTrans(p_from=tcp_pose_init_inv, p_from_to=tcp_pose)
         print(f"pose_trans: {pose_trans}")
         rotation = R.from_rotvec(pose_trans[3:6])
-
         xyz = rotation.as_euler('xyz')
 
+        pose = np.concatenate([pose_trans[:3], xyz])
         # speed = np.array(r.getActualTCPSpeed(), dtype=np.float32)
-        pose = np.asarray(actual_pose[:3]) - np.asarray(self.init_qpos[:3])
-        print(pose)
-
+        speed = np.zeros_like(pose)
         force = np.array(r.getActualTCPForce(), dtype=np.float32)
-        speed = np.zeros_like(force)
-        print(np.concatenate([pose[:3], xyz]))
+
         print(f"self.diff_vector: {self.diff_vector}")
-        print(r.getRobotStatus())
 
         obs = np.concatenate(
             [
-                np.concatenate([pose, xyz]),
-                speed, #???/DT???????????
-                force,
+                pose,
+                speed,
+                force*6,
                 self.diff_vector,
             ]
         ).astype(np.float32)
+        print(obs)
         return obs
 
     def seed(self, seed=None):
@@ -223,16 +232,22 @@ class UR5Env(gym.Env, utils.EzPickle):
         return ob, {}
 
     def set_state(self, ctrl):
-        state = np.array(r.getActualTCPPose(), np.float32)
         c.moveL(ctrl, TCPdmax, TCPddmax)
 
     def close(self):
+        c.moveL(self.init_qpos)
+
+        for row in self.csv_content:
+            csv_writer.writerow(row)
+
+        csv_file.close()
+        c.disconnect()
         print("Disconnected")
 
     def _set_action_space(self):
         center = r.getActualTCPPose()
         offset = np.ones_like(center)
-        low, high = -0.01*offset, 0.01*offset
+        low, high = -0.001*offset, 0.001*offset
         self.action_space = spaces.Box(low=low, high=high, dtype=np.float32)
         print(f"Action Space: {self.action_space}")
         return self.action_space
@@ -240,7 +255,5 @@ class UR5Env(gym.Env, utils.EzPickle):
     def _set_observation_space(self, observation):
         self.observation_space = convert_observation_to_space(observation)
         return self.observation_space
-
-
 
 

@@ -11,7 +11,8 @@ r = rtde_receive.RTDEReceiveInterface("192.168.0.102")
 low = -0.0
 high = 0.0
 
-origin_frame = [0, 0, 0, 0, 0, 0]
+origin_frame_pose = [0, 0, 0, 0, 0, 0]
+ref_frame = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 
 # def rot_to_xyz(rot):
 #     r = R.from_rotvec(rot)
@@ -43,64 +44,59 @@ origin_frame = [0, 0, 0, 0, 0, 0]
 #
 #     return rot
 
-ref_frame = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-
+# INITIALIZATION
 q_init = [0.0, 0.4, 0.4, 2.363, -2.068, 0.0] #[0.4, 0, 0.4, 2.363, -2.068 , 0.0]
+# q_init = r.getActualTCPPose()
+direction_init = R.from_rotvec(q_init[3:6])
+tcp_frame_init = direction_init.apply(ref_frame)
+tcp_pose_init = np.concatenate([q_init[:3], direction_init.as_rotvec()])
+
+rot_init = R.from_rotvec(q_init[3:6])
 c.moveL(q_init)
 
+# ACTION
+action = np.array([-0.05, 0., 0., 0., 0., 0.])
 
-
-# Random ACTION
-# action = np.random.uniform(low=low, high=high, size=q_init.__len__())
-
-action = np.array([0.1, 0.1, 0.1, 0., 0., 0.])
+# ACTION FRAME CONVERSION
 xyz = R.from_euler('xyz', action[3:6])
-print(xyz.as_euler('xyz'))
+frame_rotated_xyz = xyz.apply(rot_init.apply(ref_frame))
+rot_xyz = R.from_matrix(frame_rotated_xyz)
+
+# ACTION IMPLEMENTATION
+dp = np.zeros_like(action)
+dp[:3] = action[:3]                            #[dx, dy, dz, drx, dry, drz] wrt tcp_pose_init
+dp[3:6] = xyz.as_rotvec()
+
+dp_to_pose = c.poseTrans(p_from=tcp_pose_init, p_from_to=dp)
+c.moveL(dp_to_pose, 0.05, 0.01)
+
+# CHECK POSE
 
 pose = r.getActualTCPPose()
-pose[0:3] += action[0:3]
-rot = R.from_rotvec(pose[3:6])
 
-frame_rotated = xyz.apply(rot.apply(ref_frame))
-rot = R.from_matrix(frame_rotated)
-pose[3:6] = rot.as_rotvec()
-print(frame_rotated)
-
-c.moveL(pose)
-
-pose = r.getActualTCPPose()
-
-direction_init = R.from_rotvec(q_init[3:6])
 direction = R.from_rotvec(pose[3:6])
 
 print(f"direction_init: {direction_init.as_rotvec()}")
 print(f"direction: {direction.as_rotvec()}")
 
-tcp_frame_init = direction_init.apply(ref_frame)
 tcp_frame = direction.apply(ref_frame)
-
-tcp_pose_init = np.concatenate([q_init[:3], direction_init.as_rotvec()])
 tcp_pose = np.concatenate([pose[:3], direction.as_rotvec()])
 
 print(f"tcp_pose_init: {tcp_pose_init}")
 print(f"tcp_pose: {tcp_pose}")
 
-tcp_pose_inv = np.concatenate([-tcp_pose[:3], direction.inv().as_rotvec()])
-print(f"tcp_pose_inv: {tcp_pose_inv}")
+tcp_pose_init_inv = np.concatenate([-direction_init.inv().apply(tcp_pose_init[:3]), direction_init.inv().as_rotvec()])
+print(f"tcp_pose_init_inv: {tcp_pose_init_inv}")
 
-pose_trans = c.poseTrans(p_from=tcp_pose_inv, p_from_to=tcp_pose_init)
-
-print(pose_trans)
+pose_trans = c.poseTrans(p_from=tcp_pose_init_inv, p_from_to=tcp_pose)
+print(f"pose trans: {pose_trans}")
 
 rotation = R.from_rotvec(pose_trans[3:6])
-
-pose = np.asarray(pose[:3]) - np.asarray(q_init[:3])
 xyz = rotation.as_euler('xyz')
 
 print(f"dP: {pose}")
 print(f"Rotation XYZ: {xyz}")
 
 # c.moveL(c.poseTrans(r.getActualTCPPose(), pose), 0.5, 0.1)
+print(r.getActualTCPPose())
 print("OK")
-
-print(c.poseTrans(q_init, action))

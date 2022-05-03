@@ -15,10 +15,11 @@ with tf.compat.v1.Session() as sess:
     data = snapshotter.load(param_dir)
 
 policy = data['algo'].policy
-# env = LowPassFilterWrapper(UR5Env())
-# env = normalize(GymEnv(UR5Env()))
+# env = normalize(LowPassFilterWrapper(UR5Env()))
 env = normalize(GymEnv(UR5Env()))
 from garage import rollout
 
 path = rollout(env, policy)
 print(path)
+
+
