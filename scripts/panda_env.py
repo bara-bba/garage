@@ -29,8 +29,15 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
             done = False
             reward_done = 0
 
+        f = self.sim.data.sensordata.flat[:]
+
+        force_v = np.linalg.norm(f[:3])
+        torque_v = np.linalg.norm(f[3:6])
+
+        reward_force = np.mean(force_v + torque_v)
+
         reward_pos = -dist*1.8
-        reward = reward_pos + reward_done
+        reward = reward_pos + reward_done - reward_force
 
         self.counter += 1
 
