@@ -76,10 +76,10 @@ def initialize_target_teach():
 
 
 def initialize_target():
-
-    target = [-0.36239562949938015,0.08529021606724055,0.27826353822261857,-2.88102676084617,-1.2067481103479771,0.02370813333173729]
-    init_qpos = [-0.3638454391467953,0.08583169863224756,0.21698350689968915,-2.853489628095297,-1.297682141702302,0.015053439587182258]
+    target = [-0.3638454391467953, 0.08583169863224756, 0.21698350689968915, -2.853489628095297, -1.297682141702302, 0.015053439587182258]
+    init_qpos = [-0.36239562949938015, 0.08529021606724055, 0.27826353822261857, -2.88102676084617, -1.2067481103479771, 0.02370813333173729]
     init_qvel = [0, 0, 0, 0, 0, 0]
+    c.moveL(init_qpos, 0.01, TCPddmax)
 
     return init_qpos, init_qvel, target
 
@@ -156,9 +156,20 @@ class UR5Env(gym.Env, utils.EzPickle):
             done = False
             reward_done = 0
 
+        f = r.getActualTCPForce()
+
+        force_v = np.linalg.norm(f[:3])
+        torque_v = np.linalg.norm(f[3:6])
+
+
+        reward_force = np.mean(force_v+torque_v)
         reward_pos = -dist * 1.8
 
-        reward = reward_pos + reward_done
+        if force_v > 30:
+            done = True
+            reward_done = -100
+
+        reward = reward_pos + reward_done - reward_force/5
 
         self.counter += 1
 

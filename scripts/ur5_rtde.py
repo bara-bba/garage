@@ -14,36 +14,6 @@ high = 0.0
 origin_frame_pose = [0, 0, 0, 0, 0, 0]
 ref_frame = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 
-# def rot_to_xyz(rot):
-#     r = R.from_rotvec(rot)
-#     zyx = r.as_euler('xyz')
-#
-#     return zyx
-#
-# def zyx_to_matrix(zyx):
-#     r = R.from_euler('xyz', zyx)
-#     matrix = r.as_matrix()
-#
-#     return matrix
-#
-# def matrix_to_xyz(matrix):
-#     r = R.from_matrix(matrix)
-#     xyz = r.as_euler('xyz')
-#
-#     return xyz
-#
-# def matrix_to_rot(matrix):
-#     r = R.from_matrix(matrix)
-#     rot = r.as_rotvec()
-#
-#     return rot
-#
-# def xyz_to_rot(xyz):
-#     r = R.from_euler('xyz', xyz)
-#     rot = r.as_rotvec()
-#
-#     return rot
-
 # INITIALIZATION
 q_init = [0.0, 0.4, 0.4, 2.363, -2.068, 0.0] #[0.4, 0, 0.4, 2.363, -2.068 , 0.0]
 # q_init = r.getActualTCPPose()
