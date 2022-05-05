@@ -7,6 +7,7 @@ from gym.envs.mujoco import mujoco_env
 class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
     def __init__(self):
         self.counter = 0
+        self.reward_force = 0
         mujoco_env.MujocoEnv.__init__(self, "/home/bara/PycharmProjects/garage/panda/insert_base.xml", 100)
 
         utils.EzPickle.__init__(self)
@@ -34,10 +35,14 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         force_v = np.linalg.norm(f[:3])
         torque_v = np.linalg.norm(f[3:6])
 
-        reward_force = np.mean(force_v + torque_v)
+        if force_v > 30:
+            done = True
+            reward_done = -100
+
+        self.reward_force += np.mean(force_v + torque_v)
 
         reward_pos = -dist*1.8
-        reward = reward_pos + reward_done - reward_force
+        reward = reward_pos + reward_done - self.reward_force
 
         self.counter += 1
 
@@ -50,14 +55,13 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         return np.concatenate(
             [
                 self.sim.data.qpos.flat[:],
-                self.sim.data.qvel.flat[:],
                 self.sim.data.sensordata.flat[:],
                 (self.get_site_xpos("insert_site") - self.get_site_xpos("base_site")).flat[:],
             ]
         ).astype(np.float32)
 
     def reset_model(self):
-        c = 0.1
+        c = 0.05
         self.counter = 0
         qpos = self.init_qpos + self.np_random.uniform(low=-c, high=c, size=self.model.nq)
         qvel = np.zeros(self.model.nv)
