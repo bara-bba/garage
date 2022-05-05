@@ -139,13 +139,13 @@
 
     <actuator>
 
-        <position name="position_x" joint="insert_x" class="insert_finger" gear="1" kp="1000" forcerange="-30 30" ctrllimited="false" ctrlrange="-0.001 0.001"/>
-        <position name="position_y" joint="insert_y" class="insert_finger" gear="1" kp="1000" forcerange="-30 30" ctrllimited="false" ctrlrange="-0.001 0.001"/>
-        <position name="position_z" joint="insert_z" class="insert_finger" gear="1" kp="1000" forcerange="-30 30" ctrllimited="false" ctrlrange="-0.001 0.001"/>
+        <position name="position_x" joint="insert_x" class="insert_finger" gear="1" kp="1000" forcerange="-5 5" ctrllimited="false" ctrlrange="-0.0006 0.0006"/>
+        <position name="position_y" joint="insert_y" class="insert_finger" gear="1" kp="1000" forcerange="-5 5" ctrllimited="false" ctrlrange="-0.0006 0.0006"/>
+        <position name="position_z" joint="insert_z" class="insert_finger" gear="1" kp="1000" forcerange="-5 5" ctrllimited="false" ctrlrange="-0.0006 0.0006"/>
 
-        <position name="ball_1" joint="insert_ball_1" class="insert_finger" kp="1000" forcerange="-30 30" ctrllimited="false" ctrlrange="-0.001 0.001"/>
-        <position name="ball_2" joint="insert_ball_2" class="insert_finger" kp="1000" forcerange="-30 30" ctrllimited="false" ctrlrange="-0.001 0.001"/>
-        <position name="ball_3" joint="insert_ball_3" class="insert_finger" kp="1000" forcerange="-30 30" ctrllimited="false" ctrlrange="-0.001 0.001"/>
+        <position name="ball_1" joint="insert_ball_1" class="insert_finger" kp="1000" forcerange="-5 5 " ctrllimited="false" ctrlrange="-0.001 0.001"/>
+        <position name="ball_2" joint="insert_ball_2" class="insert_finger" kp="1000" forcerange="-5 5" ctrllimited="false" ctrlrange="-0.001 0.001"/>
+        <position name="ball_3" joint="insert_ball_3" class="insert_finger" kp="1000" forcerange="-5 5" ctrllimited="false" ctrlrange="-0.001 0.001"/>
 
     </actuator>
 
