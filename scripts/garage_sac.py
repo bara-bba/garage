@@ -9,7 +9,7 @@ from garage import wrap_experiment
 from garage.envs import GymEnv, normalize
 from garage.experiment import deterministic
 from garage.replay_buffer import PathBuffer
-from garage.sampler import FragmentWorker, LocalSampler
+from garage.sampler import FragmentWorker, LocalSampler, DefaultWorker
 from garage.torch import set_gpu_mode
 from garage.torch.algos import SAC
 from garage.torch.policies import TanhGaussianMLPPolicy
@@ -51,7 +51,7 @@ def garage_sac_panda_position(ctxt=None, seed=1):
     deterministic.set_seed(seed)
 
     trainer = Trainer(snapshot_config=ctxt)
-    env = normalize(GymEnv(PandaEnv(), max_episode_length=1000), normalize_obs=True)
+    env = normalize(GymEnv(PandaEnv(), max_episode_length=1000))
 
     policy = TanhGaussianMLPPolicy(
         env_spec=env.spec,
@@ -75,7 +75,7 @@ def garage_sac_panda_position(ctxt=None, seed=1):
     sampler = LocalSampler(agents=policy,
                            envs=env,
                            max_episode_length=env.spec.max_episode_length,
-                           worker_class=FragmentWorker)
+                           worker_class=DefaultWorker)
 
     sac = SAC(env_spec=env.spec,
               policy=policy,
@@ -92,10 +92,8 @@ def garage_sac_panda_position(ctxt=None, seed=1):
               reward_scale=1.,
               steps_per_epoch=1)
 
-    if torch.cuda.is_available():
-        set_gpu_mode(True)
-    else:
-        set_gpu_mode(False)
+
+    set_gpu_mode(False)
     sac.to()
     trainer.setup(algo=sac, env=env)
     trainer.train(n_epochs=3000, batch_size=1000, plot=True)

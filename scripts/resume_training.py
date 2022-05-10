@@ -22,7 +22,7 @@ def resume_experiment(ctxt, saved_dir):
 
     """
     with TFTrainer(snapshot_config=ctxt) as trainer:
-        trainer.restore(from_dir=saved_dir)
+        trainer.restore(from_dir=saved_dir, from_epoch=2000)
         trainer.resume()
 
 

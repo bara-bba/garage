@@ -58,10 +58,6 @@ if __name__ == '__main__':
                         help='Max length of episode')
     args = parser.parse_args()
 
-    # If the snapshot file use tensorflow, do:
-    # import tensorflow as tf
-    # with tf.compat.v1.Session():
-    #     [rest of the code]
     with tf.compat.v1.Session() as sess:
         with open(args.file, 'rb') as pickle_file:
             data = cloudpickle.load(pickle_file)
