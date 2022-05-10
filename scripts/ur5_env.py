@@ -76,8 +76,8 @@ def initialize_target_teach():
 
 
 def initialize_target():
-    target = [-0.3638454391467953, 0.08583169863224756, 0.21698350689968915, -2.853489628095297, -1.297682141702302, 0.015053439587182258]
-    init_qpos = [-0.36239562949938015, 0.08529021606724055, 0.27826353822261857, -2.88102676084617, -1.2067481103479771, 0.02370813333173729]
+    init_qpos = [-0.36223411523660765, 0.0731373793667136, 0.25290876626161135, -2.8751659715738795, -1.2103758598038512, 0.03565843724117852]
+    target = [-0.3647102079578835, 0.06622577877285467, 0.2129475683324661, -2.908459614606202, -1.0880204354463259, -0.020409988674964897]
     init_qvel = [0, 0, 0, 0, 0, 0]
     c.moveL(init_qpos, 0.01, TCPddmax)
 
@@ -91,7 +91,7 @@ class UR5Env(gym.Env, utils.EzPickle):
 
         self.csv_content = ['counter', 'x', 'y', 'z', 'obs_x', 'obs_y', 'obs_z', 'reward']
         # print(r.getActualTCPForce())
-        # c.zeroFtSensor()
+        c.zeroFtSensor()
         # print(r.getActualTCPForce())
 
         self.init_qpos, self.init_qvel, target = initialize_target()
@@ -130,14 +130,14 @@ class UR5Env(gym.Env, utils.EzPickle):
         observation, _reward, done, _info = self.step(action)
         assert not done
         self._set_observation_space(observation)
-        print(self.observation_space)
+        # print(self.observation_space)
 
         self.seed()
 
 
     def step(self, action):
 
-        print(f"action: {action}")
+        # print(f"action: {action}")
 
         tcp_pose = np.asarray(r.getActualTCPPose())
         self.move(action)
@@ -146,7 +146,7 @@ class UR5Env(gym.Env, utils.EzPickle):
 
         dist = np.linalg.norm(self.diff_vector)
 
-        if dist < 0.005:  # Millimiters
+        if dist < 0.01:  # Millimiters
             done = True
             print("DONE!!!!!!!!!!!!!")
             reward_done = 100
@@ -160,16 +160,15 @@ class UR5Env(gym.Env, utils.EzPickle):
 
         force_v = np.linalg.norm(f[:3])
         torque_v = np.linalg.norm(f[3:6])
+        # print(force_v)
 
-
-        reward_force = np.mean(force_v+torque_v)
         reward_pos = -dist * 1.8
 
         if force_v > 30:
             done = True
             reward_done = -100
 
-        reward = reward_pos + reward_done - reward_force/5
+        reward = reward_pos + reward_done
 
         self.counter += 1
 
@@ -179,7 +178,7 @@ class UR5Env(gym.Env, utils.EzPickle):
         new_row = (self.counter, r.getActualTCPPose()[0], r.getActualTCPPose()[1], r.getActualTCPPose()[2], ob[0], ob[1], ob[2], reward)
         self.csv_content = np.vstack((self.csv_content, new_row))
 
-        print(f"Reward : {reward/1.8*100}")
+        # print(f"Reward : {reward/1.8*100}")
 
         return ob, reward, done, info
 
@@ -211,7 +210,7 @@ class UR5Env(gym.Env, utils.EzPickle):
         tcp_pose = np.concatenate([actual_pose[:3], direction.as_rotvec()])
 
         pose_trans = c.poseTrans(p_from=tcp_pose_init_inv, p_from_to=tcp_pose)
-        print(f"pose_trans: {pose_trans}")
+        # print(f"pose_trans: {pose_trans}")
         rotation = R.from_rotvec(pose_trans[3:6])
         xyz = rotation.as_euler('xyz')
 
@@ -220,17 +219,17 @@ class UR5Env(gym.Env, utils.EzPickle):
         speed = np.zeros_like(pose)
         force = np.array(r.getActualTCPForce(), dtype=np.float32)
 
-        print(f"self.diff_vector: {self.diff_vector}")
+        # print(f"self.diff_vector: {self.diff_vector}")
 
         obs = np.concatenate(
             [
                 pose,
                 speed,
-                force*6,
+                force*10,
                 self.diff_vector,
             ]
         ).astype(np.float32)
-        print(obs)
+        # print(obs)
         return obs
 
     def seed(self, seed=None):
@@ -239,6 +238,7 @@ class UR5Env(gym.Env, utils.EzPickle):
 
     def reset_model(self):
         c = 0.01
+        self.dp = np.zeros_like(self.init_qpos)
         self.set_state(
             self.init_qpos + self.np_random.uniform(low=-c, high=c, size=self.init_qpos.__len__())
         )
@@ -255,8 +255,9 @@ class UR5Env(gym.Env, utils.EzPickle):
     def close(self):
         c.moveL(self.init_qpos)
 
-        for row in self.csv_content:
-            csv_writer.writerow(row)
+        # ROW WRITER FOR check.csv
+        # for row in self.csv_content:
+        #     csv_writer.writerow(row)
 
         csv_file.close()
         c.disconnect()
@@ -265,9 +266,9 @@ class UR5Env(gym.Env, utils.EzPickle):
     def _set_action_space(self):
         center = r.getActualTCPPose()
         offset = np.ones_like(center)
-        low, high = -0.001*offset, 0.001*offset
+        low, high = -0.0006*offset, 0.0006*offset
         self.action_space = spaces.Box(low=low, high=high, dtype=np.float32)
-        print(f"Action Space: {self.action_space}")
+        # print(f"Action Space: {self.action_space}")
         return self.action_space
 
     def _set_observation_space(self, observation):

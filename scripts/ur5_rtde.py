@@ -15,17 +15,18 @@ origin_frame_pose = [0, 0, 0, 0, 0, 0]
 ref_frame = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 
 # INITIALIZATION
-q_init = [0.0, 0.4, 0.4, 2.363, -2.068, 0.0] #[0.4, 0, 0.4, 2.363, -2.068 , 0.0]
+# q_init = [0.0, 0.4, 0.4, 2.363, -2.068, 0.0] #[0.4, 0, 0.4, 2.363, -2.068 , 0.0]
+q_init = [-0.36210922836471315, 0.07307940630422494, 0.35264298796509085, -2.939075804260345, -1.0515975010879668, 0.036587769291272075]
 # q_init = r.getActualTCPPose()
 direction_init = R.from_rotvec(q_init[3:6])
 tcp_frame_init = direction_init.apply(ref_frame)
 tcp_pose_init = np.concatenate([q_init[:3], direction_init.as_rotvec()])
 
 rot_init = R.from_rotvec(q_init[3:6])
-c.moveL(q_init)
+c.moveL(q_init, 0.05, 0.01)
 
 # ACTION
-action = np.array([-0.05, 0., 0., 0., 0., 0.])
+action = np.array([0.0, 0.0, 0., 0., 0., 0.])
 
 # ACTION FRAME CONVERSION
 xyz = R.from_euler('xyz', action[3:6])
