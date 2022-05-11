@@ -1,9 +1,9 @@
 <mujoco>
 
-    <compiler angle="radian"/>
+    <compiler angle="radian" inertiafromgeom="true" fitaabb="true"/>
 
     <option cone="elliptic">
-        <flag gravity="disable"/>
+        <flag gravity="disable" sensornoise="enable"/>
     </option>
 
     <asset>
@@ -113,9 +113,9 @@
  		</body>
 
         <!-- EE -->
-        <body name="insert" pos="0 0 0.68" euler="3.14159265359 0 0">
+        <body name="insert" pos="0 0 0.68" euler="3.14159265359 0 3.14159265359">
 
-            <site name="ee_site" pos="0 0 0" size="0.01, 0.01, 0.01" euler="0 0 -1.57"/>
+            <site name="ee_site" pos="0 0 0" size="0.01, 0.01, 0.01" euler="0 0 -0"/>
 
             <joint name="insert_x" pos="0 0 0" type="slide" axis="1 0 0" frictionloss="0" damping="100" range="-1 1"/>
             <joint name="insert_y" pos="0 0 0" type="slide" axis="0 1 0" frictionloss="0" damping="100" range="-1 1"/>
@@ -150,8 +150,8 @@
     </actuator>
 
     <sensor>
-        <force name="ee_force" site="ee_site"/>
-        <torque name="ee_torque" site="ee_site"/>
+        <force name="ee_force" site="ee_site" noise="0.2"/>
+        <torque name="ee_torque" site="ee_site" noise="0.2"/>
     </sensor>
 
 </mujoco>
