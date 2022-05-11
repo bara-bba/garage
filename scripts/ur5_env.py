@@ -11,6 +11,7 @@ from gym import utils, error, spaces
 from gym.utils import seeding
 
 import csv
+
 csv_file = open("check.csv", 'w')
 
 csv_writer = csv.writer(csv_file, delimiter=",")
@@ -23,6 +24,7 @@ r = rtde_receive.RTDEReceiveInterface(UR5IP)
 
 TCPdmax, TCPddmax = 0.1, 0.05
 ref_frame = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+
 
 def convert_observation_to_space(observation):
     if isinstance(observation, dict):
@@ -45,7 +47,6 @@ def convert_observation_to_space(observation):
 
 
 def initialize_target_teach():
-
     c.teachMode()
 
     print(f"Move to final position. (Enter)")
@@ -86,6 +87,7 @@ def initialize_target():
 
 class UR5Env(gym.Env, utils.EzPickle):
     """Real UR5 Environment Implementation"""
+
     def __init__(self):
         utils.EzPickle.__init__(self)
 
@@ -133,7 +135,6 @@ class UR5Env(gym.Env, utils.EzPickle):
         # print(self.observation_space)
 
         self.seed()
-
 
     def step(self, action):
 
@@ -215,8 +216,6 @@ class UR5Env(gym.Env, utils.EzPickle):
         xyz = rotation.as_euler('xyz')
 
         pose = np.concatenate([pose_trans[:3], xyz])
-        # speed = np.array(r.getActualTCPSpeed(), dtype=np.float32)
-        speed = np.zeros_like(pose)
         force = np.array(r.getActualTCPForce(), dtype=np.float32)
 
         # print(f"self.diff_vector: {self.diff_vector}")
@@ -224,8 +223,7 @@ class UR5Env(gym.Env, utils.EzPickle):
         obs = np.concatenate(
             [
                 pose,
-                speed,
-                force*10,
+                force * 10,
                 self.diff_vector,
             ]
         ).astype(np.float32)
@@ -237,20 +235,25 @@ class UR5Env(gym.Env, utils.EzPickle):
         return [seed]
 
     def reset_model(self):
-        c = 0.01
+        self.counter = 0
         self.dp = np.zeros_like(self.init_qpos)
-        self.set_state(
-            self.init_qpos + self.np_random.uniform(low=-c, high=c, size=self.init_qpos.__len__())
-        )
+
+        c_xy = 0.05
+        c_z = 0.01
+        c_a = 0.1
+
+        qpos = np.asarray(self.init_qpos)
+        qpos[:2] = self.init_qpos + self.np_random.uniform(low=-c_xy, high=c_xy, size=2)
+        qpos[2:3] = self.init_qpos + self.np_random.uniform(low=-c_z, high=c_z, size=1)
+        qpos[3:6] = self.init_qpos + self.np_random.uniform(low=-c_a, high=c_a, size=3)
+
+        self.set_state(qpos)
         return self._get_obs()
 
     def reset(self):
         c.moveL(self.init_qpos, TCPdmax, TCPddmax)
         ob = self.reset_model()
         return ob, {}
-
-    def set_state(self, ctrl):
-        c.moveL(ctrl, TCPdmax, TCPddmax)
 
     def close(self):
         c.moveL(self.init_qpos)
@@ -266,7 +269,7 @@ class UR5Env(gym.Env, utils.EzPickle):
     def _set_action_space(self):
         center = r.getActualTCPPose()
         offset = np.ones_like(center)
-        low, high = -0.0006*offset, 0.0006*offset
+        low, high = -0.0006 * offset, 0.0006 * offset
         self.action_space = spaces.Box(low=low, high=high, dtype=np.float32)
         # print(f"Action Space: {self.action_space}")
         return self.action_space
@@ -275,4 +278,6 @@ class UR5Env(gym.Env, utils.EzPickle):
         self.observation_space = convert_observation_to_space(observation)
         return self.observation_space
 
-
+    @staticmethod
+    def set_state(ctrl):
+        c.moveL(ctrl, TCPdmax, TCPddmax)
