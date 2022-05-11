@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """This is an example to train a task with SAC algorithm written in PyTorch."""
 import numpy as np
+import warnings
+warnings.filterwarnings("ignore")
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -39,6 +41,7 @@ Args:
 
 @wrap_experiment(snapshot_mode='last')
 def garage_sac_panda_position(ctxt=None, seed=1):
+
     """Set up environment and algorithm and run the task.
 
     Args:
@@ -96,7 +99,7 @@ def garage_sac_panda_position(ctxt=None, seed=1):
     set_gpu_mode(False)
     sac.to()
     trainer.setup(algo=sac, env=env)
-    trainer.train(n_epochs=3000, batch_size=1000, plot=True)
+    trainer.train(n_epochs=3000, batch_size=1000)
 
 
 s = np.random.randint(0, 1000)

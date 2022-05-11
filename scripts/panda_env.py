@@ -55,7 +55,6 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         return np.concatenate(
             [
                 self.sim.data.qpos.flat[:],
-                self.sim.data.qvel.flat[:],
                 self.sim.data.sensordata.flat[:],
                 (self.get_site_xpos("insert_site") - self.get_site_xpos("base_site")).flat[:],
             ]
@@ -64,6 +63,7 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
     def reset_model(self):
         c = 0.01
         self.counter = 0
+        self.reward_force = 0
         qpos = self.init_qpos + self.np_random.uniform(low=-c, high=c, size=self.model.nq)
         qvel = np.zeros(self.model.nv)
         self.set_state(qpos, qvel)

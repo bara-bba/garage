@@ -50,7 +50,6 @@ def ur5_sac(ctxt=None, seed=1):
             determinism.
 
     """
-    deterministic.set_seed(seed)
 
     trainer = Trainer(snapshot_config=ctxt)
 
@@ -98,6 +97,6 @@ def ur5_sac(ctxt=None, seed=1):
     set_gpu_mode(False)
     sac.to()
     trainer.setup(algo=sac, env=env)
-    trainer.train(n_epochs=3000, batch_size=1000, plot=True)
+    trainer.train(n_epochs=3000, batch_size=1000)
 
 ur5_sac()
