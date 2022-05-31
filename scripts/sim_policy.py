@@ -54,7 +54,7 @@ if __name__ == '__main__':
     parser.add_argument('file', type=str, help='path to the snapshot file')
     parser.add_argument('--max_episode_length',
                         type=int,
-                        default=1000,
+                        default=300,
                         help='Max length of episode')
     args = parser.parse_args()
 
@@ -62,11 +62,20 @@ if __name__ == '__main__':
     # import tensorflow as tf
     # with tf.compat.v1.Session():
     #     [rest of the code]
-    with tf.compat.v1.Session() as sess:
+
+    sess_config = tf.compat.v1.ConfigProto(
+        # the maximum number of GPU to use is 0, (i.e. use CPU only)
+        device_count={'GPU': 0}
+    )
+    sess = tf.compat.v1.Session(config=sess_config)
+
+    with sess as sess:
         with open(args.file, 'rb') as pickle_file:
             data = cloudpickle.load(pickle_file)
             policy = data['algo'].policy
-            env = normalize(GymEnv(PandaEnv()))
+            print(policy)
+            # env = data['env']
+            env = normalize(GymEnv(PandaEnv(), max_episode_length=300), normalize_obs=True)
             while True:
                 path = rollout(env,
                                policy,

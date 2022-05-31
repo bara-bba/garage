@@ -6,6 +6,10 @@ import click
 from garage import wrap_experiment
 from garage.trainer import TFTrainer
 
+import warnings
+
+warnings.filterwarnings("ignore")
+
 
 @click.command()
 @click.option('--saved_dir',

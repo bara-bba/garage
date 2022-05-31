@@ -18,7 +18,7 @@ from garage.torch.policies import TanhGaussianMLPPolicy
 from garage.torch.q_functions import ContinuousMLPQFunction
 from garage.trainer import Trainer
 
-from panda_env import PandaEnv
+from panda_dev import PandaEnv
 
 """Snapshotter snapshots training data.
 
@@ -40,8 +40,8 @@ Args:
 """
 
 
-@wrap_experiment(snapshot_mode='gap', snapshot_gap=30)
-def garage_sac(ctxt=None, seed=1):
+@wrap_experiment(snapshot_mode='gap', snapshot_gap=200)
+def garage_sac_dev(ctxt=None, seed=1):
     """Set up environment and algorithm and run the task.
 
     Args:
@@ -66,15 +66,14 @@ def garage_sac(ctxt=None, seed=1):
     )
 
     qf1 = ContinuousMLPQFunction(env_spec=env.spec,
-                                 hidden_sizes=[512, 512],
+                                 hidden_sizes=[256, 256],
                                  hidden_nonlinearity=F.relu)
 
     qf2 = ContinuousMLPQFunction(env_spec=env.spec,
-                                 hidden_sizes=[512, 512],
+                                 hidden_sizes=[256, 256],
                                  hidden_nonlinearity=F.relu)
 
-    replay_buffer = PathBuffer(capacity_in_transitions=int(5e6),
-                               env_spec=env.spec)
+    replay_buffer = PathBuffer(capacity_in_transitions=int(1e6))
 
     sampler = LocalSampler(agents=policy,
                            envs=env,
@@ -83,28 +82,24 @@ def garage_sac(ctxt=None, seed=1):
 
     sac = SAC(env_spec=env.spec,
               policy=policy,
-              policy_lr=0.001,
               qf1=qf1,
               qf2=qf2,
-              qf_lr=0.001,
               sampler=sampler,
-              optimizer=torch.optim.Adam,
-              gradient_steps_per_itr=10,
+              gradient_steps_per_itr=1000,
+              max_episode_length_eval=1000,
               replay_buffer=replay_buffer,
-              min_buffer_size=1e3,
-              num_evaluation_episodes=100,
-              target_update_tau=0.005,
+              min_buffer_size=1e6,
+              target_update_tau=5e-3,
               discount=0.99,
-              buffer_batch_size=512,
-              initial_log_entropy=0.,
+              buffer_batch_size=256,
               reward_scale=1.,
               steps_per_epoch=1)
 
     set_gpu_mode(False)
     sac.to()
     trainer.setup(algo=sac, env=env)
-    trainer.train(n_epochs=10000, batch_size=1024, plot=True)
+    trainer.train(n_epochs=3000, batch_size=3000, plot=True)
 
 
 s = np.random.randint(0, 1000)
-garage_sac(seed=s)
+garage_sac_dev(seed=521)

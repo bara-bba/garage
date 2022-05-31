@@ -26,83 +26,102 @@ import matplotlib.pyplot as plt
 import os
 import csv
 
+# Gaussian Distribution Noise UR5 Parameters
+MUX = 0.175
+SIX = 0.181
+MUY = -0.118
+SIY = 0.125
+MUZ = -0.508
+SIZ = 0.185
+
 env = PandaEnv()
 
 obs_dim = int(np.prod(env.observation_space.shape))
 action_dim = int(np.prod(env.action_space.shape))
 
-diff = np.zeros(1000)
-time = np.zeros(1000)
+MAX = 30000
+
+diff = np.zeros(MAX)
+fx = np.zeros(MAX)
+fy = np.zeros(MAX)
+fz = np.zeros(MAX)
+time = np.zeros(MAX)
 
 t = 0
 
-for i in range(1000):
+with open('panda_force.csv', 'w') as outfile:
+    out = csv.writer(outfile)
+    for i in range(MAX):
 
-    env.sim.data.ctrl[0] = 0.01          # panda_x
-    env.sim.data.ctrl[1] = 0          # panda_y
-    env.sim.data.ctrl[2] = 0         # panda_z
+        env.sim.data.ctrl[0] = -0.10          # panda_x
+        env.sim.data.ctrl[1] = -0.1           # panda_y
+        env.sim.data.ctrl[2] = -0.1          # panda_z
 
-    env.sim.data.ctrl[3] = 0          # panda_ball_1
-    env.sim.data.ctrl[4] = 0          # panda_ball_2    --> IN QPOS WRITTEN AS QUATERNION!
-    env.sim.data.ctrl[5] = 0          # panda_ball_3
-
-
-    # RADIANS
-    print("X" + str(env.sim.model.joint_name2id("insert_x")) + ": " + str(env.sim.data.qpos.flat[0]))
-    print("Y" + str(env.sim.model.joint_name2id("insert_y")) + ": " + str(env.sim.data.qpos.flat[1]))
-    print("Z" + str(env.sim.model.joint_name2id("insert_z")) + ": " + str(env.sim.data.qpos.flat[2]))
-    print("a" + str(env.sim.model.joint_name2id("insert_ball_1")) + ": " + str(env.sim.data.qpos.flat[3]))
-    print("b" + str(env.sim.model.joint_name2id("insert_ball_2")) + ": " + str(env.sim.data.qpos.flat[4]))
-    print("c" + str(env.sim.model.joint_name2id("insert_ball_3")) + ": " + str(env.sim.data.qpos.flat[5]))
+        env.sim.data.ctrl[3] = 0          # panda_ball_1
+        env.sim.data.ctrl[4] = 0          # panda_ball_2    --> IN QPOS WRITTEN AS QUATERNION!
+        env.sim.data.ctrl[5] = 0          # panda_ball_3
 
 
-    # print(np.shape(env.sim.data.qpos))
+        # # RADIANS
+        # print("X" + str(env.sim.model.joint_name2id("insert_x")) + ": " + str(env.sim.data.qpos.flat[0]))
+        # print("Y" + str(env.sim.model.joint_name2id("insert_y")) + ": " + str(env.sim.data.qpos.flat[1]))
+        # print("Z" + str(env.sim.model.joint_name2id("insert_z")) + ": " + str(env.sim.data.qpos.flat[2]))
+        # print("a" + str(env.sim.model.joint_name2id("insert_ball_1")) + ": " + str(env.sim.data.qpos.flat[3]))
+        # print("b" + str(env.sim.model.joint_name2id("insert_ball_2")) + ": " + str(env.sim.data.qpos.flat[4]))
+        # print("c" + str(env.sim.model.joint_name2id("insert_ball_3")) + ": " + str(env.sim.data.qpos.flat[5]))
+        #
+        # # print(np.shape(env.sim.data.qpos))
+        #
+        # # r = R.from_quat(env.sim.data.qpos[3:])
+        # # state = np.hstack([env.sim.data.qpos[:3], r.as_euler('xyz', degrees=True)]) #CONVERSION BTW RELATIVE AND ABSOLUTE POS ROTATION MATRIX; SEE XML FRAMES!
+        #
+        # state = env.sim.data.qpos
+        #
+        # # print(env.sim.get_state())
+        # print("STATE: " + str(state))
+        #
+        xpos_base = env.sim.data.get_site_xpos("base_site")
+        xpos_insert = env.sim.data.get_site_xpos("insert_site")
 
-    # r = R.from_quat(env.sim.data.qpos[3:])
-    # state = np.hstack([env.sim.data.qpos[:3], r.as_euler('xyz', degrees=True)]) #CONVERSION BTW RELATIVE AND ABSOLUTE POS ROTATION MATRIX; SEE XML FRAMES!
+        diff_vector = xpos_insert - xpos_base
+        # print(diff_vector)
+        #
+        distance = np.linalg.norm(diff_vector)
+        #
+        # print("BASE_SITE: " + str(xpos_base))
+        # print("INSERT_SITE: " + str(xpos_insert))
+        #
+        # print("DISTANCE: " + str(distance))
 
-    state = env.sim.data.qpos
+        force_x = (env.sim.data.sensordata[0])
+        force_y = (env.sim.data.sensordata[1])
+        force_z = (env.sim.data.sensordata[2])
+        # print(env.sim.data.sensordata.shape)
 
-    # print(env.sim.get_state())
-    print("STATE: " + str(state))
+        force = env.sim.data.sensordata.flat[:]
+        force[0] += np.random.normal(MUX, SIX)
+        force[1] += np.random.normal(MUY, SIY)
+        force[2] += np.random.normal(MUZ, SIZ)
 
-    xpos_base = env.sim.data.get_site_xpos("base_site")
-    xpos_insert = env.sim.data.get_site_xpos("insert_site")
+        # print(force)
 
-    distance = np.linalg.norm(xpos_insert - xpos_base)
-
-    print("BASE_SITE: " + str(xpos_base))
-    print("INSERT_SITE: " + str(xpos_insert))
-
-    print("DISTANCE: " + str(distance))
-
-    force = env.sim.data.qfrc_actuator + env.sim.data.qfrc_passive
-    # force = env.sim.data.sensordata
-    print("FORCE: " + str(force))
-
-
-    # print("XPOS object" + str(env.sim.model.body_name2id("target")) + ": " + str(xpos))
-
-    # print("NU: " + str(env.sim.model.nu))
-    # print(type(env.sim.model.nu))
-
-    # print("NQ: " + str(env.sim.model.nq))
-    # print(type(env.sim.model.nq))
-
-    # print("NV: " + str(env.sim.model.nv))
-    # print(type(env.sim.model.nv))
-
-    # print(str(env.act ion_space))
-
-    env.sim.step()
-    t += 1
-    env.render()
-
-    diff[t-1] = np.linalg.norm(env.sim.data.ctrl[0] - env.sim.data.get_site_xpos("insert_site")[0])
-    time[t-1] = env.sim.get_state().time
+        env.sim.step()
+        t += 1
+        env.render()
 
 
-#PRINT FORCES TOO!
+        fx[t-1] = (force[0])
+        fy[t-1] = (force[1])
+        fz[t-1] = (force[2])
+        # f[t-1] = (force - 0.35)/5
+        diff[t-1] = np.linalg.norm(env.sim.data.ctrl[0] - env.sim.data.get_site_xpos("insert_site")[0])
+        time[t-1] = env.sim.get_state().time
 
-plt.plot(time, diff)
+        row = [fx[t-1], fy[t-1], fz[t-1]]
+        out.writerow(row)
+
+outfile.close()
+
+
+plt.plot()
 plt.show()
