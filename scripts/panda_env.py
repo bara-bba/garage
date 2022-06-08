@@ -24,15 +24,18 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
     def step(self, action):
 
+        # print(f"Action: {action}")
         new_action = self.sim.data.qpos + action
+        # print(f"NewAction: {new_action}")
 
         self.do_simulation(new_action, self.frame_skip)
 
         diff_vector = self.get_site_xpos("insert_site") - self.get_site_xpos("base_site")
         dist = np.linalg.norm(diff_vector)
 
-        if dist < 0.005:  # Millimiters
+        if dist < 0.004:  # Millimiters
             done = True
+            # print("Done")
             reward_done = 1
         else:
             done = False
@@ -50,6 +53,7 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         # print(f"reward_force: {self.reward_force}")
 
         reward_pos = -(dist/self.dist_max)**0.2
+        # reward_pos = -dist
         reward = reward_pos + reward_done           # - self.reward_force/10
 
         # print(f"reward_pos: {reward_pos}")
@@ -62,6 +66,9 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         info = {}
         ob = self._get_obs()
 
+        # print(f"Obs: {ob}")
+        # print(f"Rew: {reward}")
+
         return ob, reward, done, info
 
     def _get_obs(self):
@@ -69,9 +76,9 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         qpos = self.sim.data.qpos.flat[:]
 
         force = self.sim.data.sensordata.flat[:]
-        force[0] += np.random.normal(0, SIX)
-        force[1] += np.random.normal(0, SIY)
-        force[2] += np.random.normal(0, SIZ)
+        # force[0] += np.random.normal(0, SIX)
+        # force[1] += np.random.normal(0, SIY)
+        # force[2] += np.random.normal(0, SIZ)
 
         diff_vector = (self.get_site_xpos("insert_site") - self.get_site_xpos("base_site")).flat[:]
 

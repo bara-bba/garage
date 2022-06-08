@@ -265,9 +265,9 @@ class UR5Env(gym.Env, utils.EzPickle):
     def _set_action_space(self):
         center = r.getActualTCPPose()
         offset = np.ones_like(center)
-        low, high = -0.001*offset, 0.001*offset
+        low, high = -0.0006*offset, 0.0006*offset
         self.action_space = spaces.Box(low=low, high=high, dtype=np.float32)
-        print(f"Action Space: {self.action_space}")
+        # print(f"Action Space: {self.action_space}")
         return self.action_space
 
     def _set_observation_space(self, observation):

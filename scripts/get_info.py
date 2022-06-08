@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""This is an example to train a task with SAC algorithm written in PyTorch."""
 import numpy as np
 import torch
 from torch import nn
@@ -54,8 +53,8 @@ with open('panda_force.csv', 'w') as outfile:
     for i in range(MAX):
 
         env.sim.data.ctrl[0] = -0.10          # panda_x
-        env.sim.data.ctrl[1] = -0.1           # panda_y
-        env.sim.data.ctrl[2] = -0.1          # panda_z
+        env.sim.data.ctrl[1] = -0.0           # panda_y
+        env.sim.data.ctrl[2] = -0.0          # panda_z
 
         env.sim.data.ctrl[3] = 0          # panda_ball_1
         env.sim.data.ctrl[4] = 0          # panda_ball_2    --> IN QPOS WRITTEN AS QUATERNION!
@@ -80,6 +79,7 @@ with open('panda_force.csv', 'w') as outfile:
         # # print(env.sim.get_state())
         # print("STATE: " + str(state))
         #
+        xpos_ee = env.sim.data.get_site_xpos("ee_site")
         xpos_base = env.sim.data.get_site_xpos("base_site")
         xpos_insert = env.sim.data.get_site_xpos("insert_site")
 
@@ -103,25 +103,25 @@ with open('panda_force.csv', 'w') as outfile:
         force[1] += np.random.normal(MUY, SIY)
         force[2] += np.random.normal(MUZ, SIZ)
 
-        # print(force)
+        print(xpos_ee-xpos_insert)
 
         env.sim.step()
         t += 1
         env.render()
 
 
-        fx[t-1] = (force[0])
-        fy[t-1] = (force[1])
-        fz[t-1] = (force[2])
-        # f[t-1] = (force - 0.35)/5
-        diff[t-1] = np.linalg.norm(env.sim.data.ctrl[0] - env.sim.data.get_site_xpos("insert_site")[0])
-        time[t-1] = env.sim.get_state().time
+        # fx[t-1] = (force[0])
+        # fy[t-1] = (force[1])
+        # fz[t-1] = (force[2])
+        # # f[t-1] = (force - 0.35)/5
+        # diff[t-1] = np.linalg.norm(env.sim.data.ctrl[0] - env.sim.data.get_site_xpos("insert_site")[0])
+        # time[t-1] = env.sim.get_state().time
+        #
+        # row = [fx[t-1], fy[t-1], fz[t-1]]
+        # out.writerow(row)
 
-        row = [fx[t-1], fy[t-1], fz[t-1]]
-        out.writerow(row)
-
-outfile.close()
-
-
-plt.plot()
-plt.show()
+# outfile.close()
+#
+#
+# plt.plot()
+# plt.show()

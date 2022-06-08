@@ -41,7 +41,7 @@
         <mesh name="mesh_26" file="stl/mesh/26.stl" scale="0.001 0.001 0.001"/>
 
         <!-- INSERT -->
-        <mesh name="insert" file="stl/insert.stl" scale='0.00092 0.00092 0.001'/>
+        <mesh name="insert" file="stl/insert.stl" scale='0.00093 0.00093 0.001'/>
 
     </asset>
 
@@ -113,7 +113,7 @@
  		</body>
 
         <!-- EE -->
-        <body name="insert" pos="0 0 0.68" euler="3.14159265359 0 3.14159265359">
+        <body name="insert" pos="0 0 0.70" euler="3.14159265359 0 3.14159265359">
 
             <site name="ee_site" pos="0 0 0" size="0.01, 0.01, 0.01" euler="0 0 -0"/>
 
@@ -126,7 +126,7 @@
             <joint name="insert_ball_3" pos="0 0 0" type="hinge" axis="0 0 1" frictionloss="0" damping="100" range="-3 3"/>
 
             <!-- COMPONENT -->
-            <body name="piston" pos="0 0 0.147">
+            <body name="piston" pos="0 0 0.165">
                 <geom pos="0 0 0" euler="0 0 0" class="visual" mesh="insert" conaffinity="1" contype="1" mass="0.3"/>
                 <!--geom type="cylinder" size="0.02 0.05" mass="0.1"/-->
                 <site name="insert_site" size="0.002" pos="0 0 0.035" rgba="0.9529411765 0.8 0.03529411765 1"/>
@@ -143,9 +143,9 @@
         <position name="position_y" joint="insert_y" class="insert_finger" gear="1" kp="1000" forcerange="-5 5" ctrllimited="false" ctrlrange="-0.0006 0.0006"/>
         <position name="position_z" joint="insert_z" class="insert_finger" gear="1" kp="1000" forcerange="-5 5" ctrllimited="false" ctrlrange="-0.0006 0.0006"/>
 
-        <position name="ball_1" joint="insert_ball_1" class="insert_finger" kp="1000" forcerange="-5 5 " ctrllimited="false" ctrlrange="-0.001 0.001"/>
-        <position name="ball_2" joint="insert_ball_2" class="insert_finger" kp="1000" forcerange="-5 5" ctrllimited="false" ctrlrange="-0.001 0.001"/>
-        <position name="ball_3" joint="insert_ball_3" class="insert_finger" kp="1000" forcerange="-5 5" ctrllimited="false" ctrlrange="-0.001 0.001"/>
+        <position name="ball_1" joint="insert_ball_1" class="insert_finger" kp="1000" forcerange="-10 10" ctrllimited="false" ctrlrange="-0.001 0.001"/>
+        <position name="ball_2" joint="insert_ball_2" class="insert_finger" kp="1000" forcerange="-10 10" ctrllimited="false" ctrlrange="-0.001 0.001"/>
+        <position name="ball_3" joint="insert_ball_3" class="insert_finger" kp="1000" forcerange="-10 10" ctrllimited="false" ctrlrange="-0.001 0.001"/>
 
     </actuator>
 

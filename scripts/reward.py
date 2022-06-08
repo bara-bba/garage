@@ -16,11 +16,11 @@ dist = np.arange(0, dist_max, dist_step)
 exp = np.arange(MIN, MAX, np.linalg.norm(MAX - MIN)/TEST)
 
 for i in range(TEST):
-    reward = 1 - (dist/dist_max)**exp[i]
-    reward = np.interp(reward, (reward.min(), reward.max()), (-1, 1))
+    reward = -(dist/dist_max)**exp[i]
+    # reward = np.interp(reward, (reward.min(), reward.max()), (-1, 1))
     plt.plot(dist, reward, label=f"exp = {exp[i]:.2f}")
 
 plt.title("Exponential Reward Function")
 plt.legend()
-plt.xlim([0, 0.15])
+plt.xlim([0, 0.30])
 plt.show()

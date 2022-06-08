@@ -40,7 +40,7 @@ Args:
 """
 
 
-@wrap_experiment(snapshot_mode='gap', snapshot_gap=30)
+@wrap_experiment(snapshot_mode='last')
 def garage_sac(ctxt=None, seed=1):
     """Set up environment and algorithm and run the task.
 
@@ -54,7 +54,8 @@ def garage_sac(ctxt=None, seed=1):
     deterministic.set_seed(seed)
 
     trainer = Trainer(snapshot_config=ctxt)
-    env = normalize(GymEnv(PandaEnv(), max_episode_length=300), normalize_obs=True)
+    # env = normalize(GymEnv(PandaEnv(), max_episode_length=300), normalize_reward=False, normalize_obs=False)
+    env = GymEnv(PandaEnv(), max_episode_length=300)
 
     policy = TanhGaussianMLPPolicy(
         env_spec=env.spec,

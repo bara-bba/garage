@@ -1,15 +1,25 @@
 import numpy as np
+import pandas as pd
+
+COL_NAMES = ["a[0]", "a[1]", "a[2]", "a[3]", "a[4]", "a[5]", "o[0]", "o[1]", "o[2]", "o[3]", "o[4]", "o[5]", "o[6]", "o[7]", "o[8]", "o[9]", "o[10]", "o[11]", "o[12]", "o[13]", "o[14]"]
+df = pd.DataFrame([[np.zeros(21)]], columns=COL_NAMES)
 
 from gym import utils
 from gym.envs.mujoco import mujoco_env
+
+# Gaussian Distribution Noise UR5 Parameters
+MUX = 0.175
+SIX = 0.181
+MUY = -0.118
+SIY = 0.125
+MUZ = -0.508
+SIZ = 0.185
 
 
 class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
     def __init__(self):
         self.counter = 0
         self.reward_force = 0
-        self.reward_x = 0
-        self.reward_y = 0
         self.force_sum = 0
         self.dist_max = 0.0006*300*np.sqrt(3)
         mujoco_env.MujocoEnv.__init__(self, "/home/bara/PycharmProjects/garage/panda/insert_base.xml", 100)
@@ -18,23 +28,19 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
     def step(self, action):
 
+        # print(f"Action: {action}")
         new_action = self.sim.data.qpos + action
+        # print(f"NewAction: {new_action}")
 
         self.do_simulation(new_action, self.frame_skip)
 
         diff_vector = self.get_site_xpos("insert_site") - self.get_site_xpos("base_site")
-        x_vector = diff_vector[0]
-        y_vector = diff_vector[1]
         dist = np.linalg.norm(diff_vector)
-        dist_x = np.linalg.norm(x_vector)
-        dist_y = np.linalg.norm(y_vector)
 
-        if dist_x < 0.005 and self.counter != 0:  # Millimiters
-            done = False
-            self.reward_x = 100
-            if dist_y < 0.0006:
-                done = True
-                self.reward_y = 100
+        if dist < 0.005:  # Millimiters
+            done = True
+            print("Done")
+            reward_done = 1
         else:
             done = False
             reward_done = 0
@@ -50,10 +56,9 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
         # print(f"reward_force: {self.reward_force}")
 
-        reward_pos = 1 - (dist/self.dist_max)**0.2
-        reward_xd = 1 - (dist_x/self.dist_max)**0.2
-        reward_yd = 1 - (dist_y/self.dist_max)**0.2
-        reward = self.reward_x + self.reward_y + (reward_xd + reward_yd)*0.5 - self.counter           # - self.reward_force/10
+        reward_pos = -(dist/self.dist_max)**0.2
+        # reward_pos = -dist
+        reward = reward_pos + reward_done           # - self.reward_force/10
 
         # print(f"reward_pos: {reward_pos}")
         # print(f"reward_done: {reward_done}")
@@ -65,15 +70,30 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         info = {}
         ob = self._get_obs()
 
+        df_n = pd.DataFrame([[action, ob]], columns=COL_NAMES)
+        df.append(df_n, ignore_index=True)
+
+        # print(f"Obs: {ob}")
+        # print(f"Rew: {reward}")
+
         return ob, reward, done, info
 
     def _get_obs(self):
         # print(self.sim.data.qpos)
+        qpos = self.sim.data.qpos.flat[:]
+
+        force = self.sim.data.sensordata.flat[:]
+        force[0] += np.random.normal(0, SIX)
+        force[1] += np.random.normal(0, SIY)
+        force[2] += np.random.normal(0, SIZ)
+
+        diff_vector = (self.get_site_xpos("insert_site") - self.get_site_xpos("base_site")).flat[:]
+
         return np.concatenate(
             [
-                self.sim.data.qpos.flat[:],
-                self.sim.data.sensordata.flat[:],
-                (self.get_site_xpos("insert_site") - self.get_site_xpos("base_site")).flat[:],
+                qpos,
+                force,
+                diff_vector,
             ]
         ).astype(np.float32)
 
@@ -87,7 +107,6 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         qpos[:2] = self.np_random.uniform(low=-c_xy, high=c_xy, size=2)
         qpos[2:3] = self.np_random.uniform(low=-c_z, high=c_z, size=1)
         qpos[3:6] = self.np_random.uniform(low=-c_a, high=c_a, size=3)
-        # print(qpos[3:6])
         qvel = np.zeros(self.model.nv)
         self.set_state(qpos, qvel)
         return self._get_obs()

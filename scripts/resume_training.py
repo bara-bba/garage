@@ -4,7 +4,7 @@
 import click
 
 from garage import wrap_experiment
-from garage.trainer import TFTrainer
+from garage.trainer import Trainer
 
 import warnings
 
@@ -15,7 +15,9 @@ warnings.filterwarnings("ignore")
 @click.option('--saved_dir',
               required=True,
               help='Path where snapshots are saved.')
-@wrap_experiment
+
+
+@wrap_experiment(snapshot_mode='gap', snapshot_gap=300)
 def resume_experiment(ctxt, saved_dir):
     """Resume a Tensorflow experiment.
 
@@ -25,9 +27,10 @@ def resume_experiment(ctxt, saved_dir):
         saved_dir (str): Path where snapshots are saved.
 
     """
-    with TFTrainer(snapshot_config=ctxt) as trainer:
-        trainer.restore(from_dir=saved_dir)
-        trainer.resume()
+
+    trainer = Trainer(snapshot_config=ctxt)
+    trainer.restore(from_dir=saved_dir)
+    trainer.resume(plot=True)
 
 
 resume_experiment()

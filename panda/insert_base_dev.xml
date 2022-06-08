@@ -113,7 +113,7 @@
  		</body>
 
         <!-- EE -->
-        <body name="insert" pos="0 0 0.68" euler="3.14159265359 0 3.14159265359">
+        <body name="insert" pos="0 0 0.73" euler="3.14159265359 0 3.14159265359">
 
             <site name="ee_site" pos="0 0 0" size="0.01, 0.01, 0.01" euler="0 0 -0"/>
 
@@ -126,7 +126,7 @@
             <joint name="insert_ball_3" pos="0 0 0" type="hinge" axis="0 0 1" frictionloss="0" damping="100" range="-3 3"/>
 
             <!-- COMPONENT -->
-            <body name="piston" pos="0 0 0.147">
+            <body name="piston" pos="0 0 0.18">
                 <geom pos="0 0 0" euler="0 0 0" class="visual" mesh="insert" conaffinity="1" contype="1" mass="0.3"/>
                 <!--geom type="cylinder" size="0.02 0.05" mass="0.1"/-->
                 <site name="insert_site" size="0.002" pos="0 0 0.035" rgba="0.9529411765 0.8 0.03529411765 1"/>
