@@ -12,6 +12,9 @@ import rtde_receive
 import gym
 from gym import utils, error, spaces
 from gym.utils import seeding
+import math
+
+from garage import Environment, EnvSpec, EnvStep, StepType
 
 # Mean Gaussian Distribution Noise UR5
 MUX = 0.175
@@ -22,8 +25,6 @@ MUZ = -0.508
 UR5IP = "192.168.0.102"
 c = rtde_control.RTDEControlInterface(UR5IP)
 r = rtde_receive.RTDEReceiveInterface(UR5IP)
-
-print("Connected")
 
 TCPdmax, TCPddmax = 0.1, 0.05
 ref_frame = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
@@ -80,10 +81,10 @@ def initialize_target_teach():
 
 
 def initialize_target():
-    init_qpos = [0.05649304156930342, -0.3758193992621653, 0.23777181518273438, -2.9876820047633994, 0.9229206730917303, 0.0027145060149046858]
+    init_qpos = [5.74918477e-02, -3.74263917e-01, 2.4090970e-01, 3.00072744e+00, -9.26571906e-01, 2.10862988e-04]
     target = [5.74955744e-02, -3.74280655e-01, 2.09995799e-01, 3.00065647e+00, -9.26503897e-01, 1.99188108e-04]
-    # print(f"targetTCP: {target}")
     init_qvel = [0, 0, 0, 0, 0, 0]
+    c.moveL(init_qpos, 0.05, TCPddmax)
 
     return init_qpos, init_qvel, target
 
@@ -130,29 +131,24 @@ def align_offset(q_init):
 
     return offset
 
-offset =  0.18619462922513869
-# offset = align_offset([0.0787245789939134, -0.33986525591765276, 0.24093064058207303, 3.000646684670453, -0.926591058461939, 0.0002493975367802343])
-
-pos = r.getActualTCPPose()
-pos[3] += 0.1
-c.moveL(pos, TCPdmax, TCPddmax)
-c.moveL([0.05649304156930342, -0.3758193992621653, 0.23777181518273438, -2.9876820047633994, 0.9229206730917303, 0.0027145060149046858], TCPdmax, TCPddmax)
-
-class UR5Env(gym.Env, utils.EzPickle):
+offset = 0.1990014370730782
+# offset = align_offset([5.74918477e-02, -3.74263917e-01, 2.4090970e-01, 3.00072744e+00, -9.26571906e-01, 2.10862988e-04])
+#
+class UR5Env(Environment):
     """Real UR5 Environment Implementation"""
 
-    def __init__(self):
+    def __init__(self, max_episode_length=math.inf):
 
-        # self.viewer = None
-        # self._viewers = {}
-        utils.EzPickle.__init__(self)
+        self.viewer = None
+        self._viewers = {}
+        self._visualize = False
+        self._max_episode_length = max_episode_length
 
         c.zeroFtSensor()
 
         self.offset = offset
         self.init_qpos, self.init_qvel, target = initialize_target()
         self.target = np.asarray(target[:3]) - np.asarray((0, 0, self.offset))
-        # print(f"targetSITE: {self.target}")
         self.dist_max = 0.0006*300*np.sqrt(3)
 
         self.direction_init = R.from_rotvec(self.init_qpos[3:6])
@@ -160,12 +156,15 @@ class UR5Env(gym.Env, utils.EzPickle):
         self.tcp_pose_init = np.concatenate([self.init_qpos[:3], self.direction_init.as_rotvec()])
 
         self.diff_vector = np.array([0, 0, 0], np.float32)
+        #
 
-        self.metadata = {"render_modes": ["human"]}
+
+        self.metadata = {"render.modes": ["human"]}
 
         self.counter = 0
 
         self.set_action_space()
+
         action = self.action_space.sample()
         self.dp = np.zeros_like(action)
         self.dtheta = np.zeros_like(action[3:6])
@@ -173,7 +172,8 @@ class UR5Env(gym.Env, utils.EzPickle):
         self.exec = 0
         observation, _reward, done, _info = self.step(action)
         assert not done
-        self.set_observation_space(observation)
+        self._set_observation_space(observation)
+        # print(self.observation_space)
 
         self.seed()
 
@@ -196,12 +196,9 @@ class UR5Env(gym.Env, utils.EzPickle):
 
         self.diff_vector = site_pose[:3] - self.target
 
-        # print(f"diff_vector: {self.diff_vector}")
-
         dist = np.linalg.norm(self.diff_vector)
-        # print(f"dist: {dist}")
 
-        if dist < 0.008:  # Millimiters
+        if dist < 0.005:  # Millimiters
             done = True
             print("DONE!!!!!!!!!!!!!")
             reward_done = 1
@@ -211,18 +208,18 @@ class UR5Env(gym.Env, utils.EzPickle):
             reward_done = 0
 
         f = r.getActualTCPForce()
-        # f = (f[0] - MUX, f[1] - MUY, f[2] - MUZ)
+        f = (f[0] - MUX, f[1] - MUY, f[2] - MUZ)
 
         force_v = np.linalg.norm(f[:3])
         torque_v = np.linalg.norm(f[3:6])
-        print(f"Force_Vector: {force_v}")
+        # print(f"Force_Vector: {force_v}")
+
+        reward_pos = - (dist/self.dist_max)**0.2
 
         if force_v > 20:
             done = True
-            print("Too much force")
+            print("FAIL")
             reward_done = -1
-
-        reward_pos = - (dist/self.dist_max)**0.2
 
         reward = reward_pos + reward_done
 
@@ -253,8 +250,8 @@ class UR5Env(gym.Env, utils.EzPickle):
         direction = R.from_rotvec(actual_pose[3:6])
         direction_init = R.from_rotvec(self.init_qpos[3:6])
 
-        # tcp_frame = direction.apply(ref_frame)
-        # tcp_frame_init = direction_init.apply(ref_frame)
+        tcp_frame = direction.apply(ref_frame)
+        tcp_frame_init = direction_init.apply(ref_frame)
 
         tcp_pose_init = np.concatenate([self.init_qpos[:3], direction_init.as_rotvec()])
         tcp_pose_init_inv = np.concatenate([-direction_init.inv().apply(tcp_pose_init[:3]), direction_init.inv().as_rotvec()])
@@ -270,9 +267,9 @@ class UR5Env(gym.Env, utils.EzPickle):
 
         pose = np.concatenate([pose_trans[:3], xyz])
         f = np.array(r.getActualTCPForce(), dtype=np.float32)
-        # f[0] = f[0] - MUX
-        # f[1] = f[1] - MUY
-        # f[2] = f[2] - MUZ
+        f[0] = f[0] - MUX
+        f[1] = f[1] - MUY
+        f[2] = f[2] - MUZ
 
         tcp_to_site = np.concatenate([[0, 0, self.offset], [0, 0, 0]])
 
@@ -286,6 +283,10 @@ class UR5Env(gym.Env, utils.EzPickle):
 
         # print(f"self.diff_vector: {self.diff_vector}")
         site_pose = np.array(site_pose, dtype=np.float32)
+
+        # print(type(site_pose))
+        # print(type(f))
+        # print(type(self.diff_vector))
 
         obs = np.concatenate(
             [
@@ -303,6 +304,7 @@ class UR5Env(gym.Env, utils.EzPickle):
 
     def reset_model(self):
         self.counter = 0
+        self.dp = np.zeros_like(self.init_qpos)
 
         c_xy = 0.05
         c_z = 0.01
@@ -313,30 +315,24 @@ class UR5Env(gym.Env, utils.EzPickle):
         qpos[2:3] = self.init_qpos[2:3] + self.np_random.uniform(low=-c_z, high=c_z, size=1)
         qpos[3:6] = self.init_qpos[3:6] + self.np_random.uniform(low=-c_a, high=c_a, size=3)
 
-        self.dp = np.zeros_like(self.init_qpos)
-        self.dtheta = np.zeros(3)
-
-        c.moveL(r.getActualTCPPose() + [0, 0, 0.1, 0, 0, 0])
-        c.moveL(qpos, TCPdmax, TCPddmax)
-
         c.zeroFtSensor()
 
+        self.set_state(qpos)
         return self._get_obs()
 
     def reset(self):
+        c.moveL(self.init_qpos, TCPdmax, TCPddmax)
         ob = self.reset_model()
         return ob, {}
 
-    # @property
-    # def close(self):
-    #     if self.viewer is not None:
-    #         # self.viewer.finish()
-    #         self.viewer = None
-    #         self._viewers = {}
-    #     print("Close")
-    #     return
+    def close(self):
+        if self.viewer is not None:
+            # self.viewer.finish()
+            self.viewer = None
+            self._viewers = {}
+        print("Close")
 
-    def set_action_space(self):
+    def _set_action_space(self):
         center = r.getActualTCPPose()
         offset = np.ones_like(center).astype(np.float32)
         low, high = -0.0006 * offset, 0.0006 * offset
@@ -344,11 +340,13 @@ class UR5Env(gym.Env, utils.EzPickle):
         # print(f"Action Space: {self.action_space}")
         return self.action_space
 
-    def set_observation_space(self, observation):
-        # print(f"observation: {observation}")
+    def _set_observation_space(self, observation):
         self.observation_space = convert_observation_to_space(observation)
-        # print(f"observationSpace: {self.observation_space}")
         return self.observation_space
+
+    @staticmethod
+    def set_state(ctrl):
+        c.moveL(ctrl, TCPdmax, TCPddmax)
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)

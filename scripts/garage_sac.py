@@ -2,6 +2,7 @@
 """This is an example to train a task with SAC algorithm written in PyTorch."""
 import numpy as np
 import warnings
+
 warnings.filterwarnings("ignore")
 import torch
 from torch import nn
@@ -39,6 +40,7 @@ Args:
 
 """
 
+
 @wrap_experiment(snapshot_mode='last')
 def garage_sac(ctxt=None, seed=1):
     """Set up environment and algorithm and run the task.
@@ -50,10 +52,11 @@ def garage_sac(ctxt=None, seed=1):
             determinism.
 
     """
+
     deterministic.set_seed(seed)
 
     trainer = Trainer(snapshot_config=ctxt)
-    env = normalize(GymEnv(PandaEnv(), max_episode_length=1000), normalize_obs=True)
+    env = normalize(GymEnv(PandaEnv(), max_episode_length=400), normalize_obs=True, normalize_reward=True)
 
     policy = TanhGaussianMLPPolicy(
         env_spec=env.spec,
@@ -77,7 +80,7 @@ def garage_sac(ctxt=None, seed=1):
     sampler = LocalSampler(agents=policy,
                            envs=env,
                            max_episode_length=env.spec.max_episode_length,
-                           worker_class=DefaultWorker)
+                           worker_class=FragmentWorker)
 
     sac = SAC(env_spec=env.spec,
               policy=policy,
@@ -85,20 +88,19 @@ def garage_sac(ctxt=None, seed=1):
               qf2=qf2,
               sampler=sampler,
               gradient_steps_per_itr=100,
-              max_episode_length_eval=1000,
+              max_episode_length_eval=300,
               replay_buffer=replay_buffer,
-              min_buffer_size=1e4,
+              min_buffer_size=1e6,
               target_update_tau=5e-3,
-              discount=0.99,
+              discount=0.95,
               buffer_batch_size=256,
               reward_scale=1.,
               steps_per_epoch=1)
 
-
     set_gpu_mode(False)
     sac.to()
     trainer.setup(algo=sac, env=env)
-    trainer.train(n_epochs=3000, batch_size=1000, plot=True)
+    trainer.train(n_epochs=2000, batch_size=2000, plot=True)
 
 
 s = np.random.randint(0, 1000)

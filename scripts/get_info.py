@@ -69,6 +69,8 @@ for i in range(1000):
     xpos_base = env.sim.data.get_site_xpos("base_site")
     xpos_insert = env.sim.data.get_site_xpos("insert_site")
 
+    print(xpos_base)
+
     distance = np.linalg.norm(xpos_insert - xpos_base)
 
     print("BASE_SITE: " + str(xpos_base))

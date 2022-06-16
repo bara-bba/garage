@@ -5,9 +5,8 @@ from wrappers import LowPassFilterWrapper
 from garage.envs import normalize, GymEnv
 
 from ur5_env import UR5Env
-from panda_env import PandaEnv
 
-param_dir = "/home/bara/PycharmProjects/garage/data/local/experiment/garage_sac_panda_position/"
+param_dir = "/home/bara/PycharmProjects/garage/data/local/experiment/sac_2_normalized"
 snapshotter = Snapshotter()
 
 with tf.compat.v1.Session() as sess:
@@ -16,10 +15,10 @@ with tf.compat.v1.Session() as sess:
 
 policy = data['algo'].policy
 # env = normalize(LowPassFilterWrapper(UR5Env()))
-env = normalize(GymEnv(UR5Env()))
+env = normalize(GymEnv(UR5Env(), max_episode_length=300), normalize_reward=False, normalize_obs=False)
 from garage import rollout
 
 path = rollout(env, policy)
-print(path)
+# print(path)
 
 
