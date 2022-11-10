@@ -21,9 +21,9 @@ from garage.trainer import Trainer
 
 from panda_env import PandaEnv
 
-"""Snapshotter snapshots training data.
+"""Snapshotter snapshots training_22_forcelimited data.
 
-When training, it saves data to binary files. When resuming,
+When training_22_forcelimited, it saves data to binary files. When resuming,
 it loads from saved data.
 
 Args:

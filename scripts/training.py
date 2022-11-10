@@ -17,10 +17,10 @@ from garage.trainer import Trainer, TFTrainer
 from garage.torch.q_functions import ContinuousMLPQFunction
 from torch.nn import functional as F
 
-# from panda_env import PandaEnv
+from panda_env import PandaEnv
 # env = normalize(GymEnv(PandaEnv(), max_episode_length=300), normalize_reward=False, normalize_obs=False)
 from ur5_env import UR5Env
-env = normalize(GymEnv(UR5Env(), max_episode_length=300), normalize_reward=False, normalize_obs=False)
+env = normalize(GymEnv(UR5Env(), max_episode_length=300), normalize_reward=False, normalize_obs=True)
 
 @wrap_experiment(snapshot_mode='last')
 def training(ctxt=None, seed=1):
@@ -31,7 +31,7 @@ def training(ctxt=None, seed=1):
 
     policy = TanhGaussianMLPPolicy(
         env_spec=env.spec,
-        hidden_sizes=[32, 32],
+        hidden_sizes=[64, 64],
         hidden_nonlinearity=None,
         output_nonlinearity=None,
         min_std=np.exp(-20.),
@@ -49,7 +49,8 @@ def training(ctxt=None, seed=1):
     sampler = LocalSampler(agents=policy,
                            envs=env,
                            max_episode_length=env.spec.max_episode_length,
-                           worker_class=DefaultWorker)
+                           worker_class=DefaultWorker,
+                           n_workers=1)
 
     sac = SAC(env_spec=env.spec,
               policy=policy,
@@ -59,16 +60,17 @@ def training(ctxt=None, seed=1):
               qf_lr=0.001,
               sampler=sampler,
               optimizer=torch.optim.Adam,
-              gradient_steps_per_itr=1000,
+              gradient_steps_per_itr=100,
               replay_buffer=replay_buffer,
               min_buffer_size=int(1e1),
-              num_evaluation_episodes=10,
-              target_update_tau=0.005,
+              num_evaluation_episodes=1,
               discount=0.99,
               buffer_batch_size=128,
               initial_log_entropy=0.,
               reward_scale=1.,
-              steps_per_epoch=1)
+              steps_per_epoch=1
+              # eval_env=normalize(GymEnv(PandaEnv(), max_episode_length=300), normalize_reward=True, normalize_obs=True)
+              )
 
     set_gpu_mode(False)
     sac.to()

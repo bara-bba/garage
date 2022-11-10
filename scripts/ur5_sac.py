@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """This is an example to train a task with SAC algorithm written in PyTorch."""
 import numpy as np
+import warnings
+
+warnings.filterwarnings("ignore")
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -14,16 +17,13 @@ from garage.torch import set_gpu_mode
 from garage.torch.algos import SAC
 from garage.torch.policies import TanhGaussianMLPPolicy
 from garage.torch.q_functions import ContinuousMLPQFunction
-from garage.trainer import Trainer, TFTrainer
-from garage.experiment import Snapshotter
+from garage.trainer import Trainer
 
-from panda_env import PandaEnv
+from ur5_env import UR5Env
 
-# from ur5_env import UR5Env
+"""Snapshotter snapshots training_22_forcelimited data.
 
-"""Snapshotter snapshots training data.
-
-When training, it saves data to binary files. When resuming,
+When training_22_forcelimited, it saves data to binary files. When resuming,
 it loads from saved data.
 
 Args:
@@ -55,56 +55,58 @@ def ur5_sac(ctxt=None, seed=1):
 
     deterministic.set_seed(seed)
 
-    with TFTrainer(ctxt) as trainer:
-        # MARK: begin modifications to existing example
-        snapshotter = Snapshotter()
-        snapshot = snapshotter.load('/home/bara/PycharmProjects/garage/data/local/experiment/garage_sac/')
-        qf1 = snapshot['algo']._qf1
-        qf2 = snapshot['algo']._qf2
+    trainer = Trainer(snapshot_config=ctxt)
+    env = normalize(GymEnv(UR5Env(), max_episode_length=300), normalize_obs=True, normalize_reward=False)
 
-        print("---------------------- qf1 ----------------------")
-        print(qf1)
-        print("---------------------- qf2 ----------------------")
-        print(qf2)
+    policy = TanhGaussianMLPPolicy(
+        env_spec=env.spec,
+        hidden_sizes=[256, 256],
+        hidden_nonlinearity=nn.ReLU,
+        output_nonlinearity=None,
+        min_std=np.exp(-20.),
+        max_std=np.exp(2.),
+    )
 
-        env = normalize(GymEnv(PandaEnv(), max_episode_length=500))
-        # env = normalize(GymEnv(UR5Env(), max_episode_length=500))
+    qf1 = ContinuousMLPQFunction(env_spec=env.spec,
+                                 hidden_sizes=[256, 256],
+                                 hidden_nonlinearity=F.relu)
 
-        policy = TanhGaussianMLPPolicy(
-            env_spec=env.spec,
-            hidden_sizes=[256, 256],
-            hidden_nonlinearity=nn.ReLU,
-            output_nonlinearity=None,
-            min_std=np.exp(-20.),
-            max_std=np.exp(2.),
-        )
+    qf2 = ContinuousMLPQFunction(env_spec=env.spec,
+                                 hidden_sizes=[256, 256],
+                                 hidden_nonlinearity=F.relu)
 
-        replay_buffer = PathBuffer(capacity_in_transitions=int(1e6))
+    replay_buffer = PathBuffer(capacity_in_transitions=int(1e6))
 
-        sampler = LocalSampler(agents=policy,
-                               envs=env,
-                               max_episode_length=env.spec.max_episode_length,
-                               worker_class=DefaultWorker)
+    sampler = LocalSampler(agents=policy,
+                           envs=env,
+                           max_episode_length=env.spec.max_episode_length,
+                           worker_class=FragmentWorker)
 
-        sac = SAC(env_spec=env.spec,
-                  policy=policy,
-                  qf1=qf1,
-                  qf2=qf2,
-                  sampler=sampler,
-                  gradient_steps_per_itr=100,
-                  max_episode_length_eval=1000,
-                  replay_buffer=replay_buffer,
-                  min_buffer_size=1e4,
-                  target_update_tau=5e-3,
-                  discount=0.99,
-                  buffer_batch_size=256,
-                  reward_scale=1.,
-                  steps_per_epoch=1)
+    sac = SAC(env_spec=env.spec,
+              policy=policy,
+              policy_lr=0.001,
+              qf1=qf1,
+              qf2=qf2,
+              qf_lr=0.001,
+              sampler=sampler,
+              optimizer=torch.optim.Adam,
+              gradient_steps_per_itr=100,
+              replay_buffer=replay_buffer,
+              min_buffer_size=int(1e1),
+              num_evaluation_episodes=1,
+              discount=0.99,
+              buffer_batch_size=128,
+              initial_log_entropy=0.,
+              reward_scale=1.,
+              steps_per_epoch=1
+              # eval_env=normalize(GymEnv(PandaEnv(), max_episode_length=300), normalize_reward=True, normalize_obs=True)
+              )
 
-        # set_gpu_mode(False)
-        # sac.to()
-        trainer.setup(algo=sac, env=env)
-        trainer.train(n_epochs=100, batch_size=10)
+    set_gpu_mode(False)
+    sac.to()
+    trainer.setup(algo=sac, env=env)
+    trainer.train(n_epochs=100, batch_size=1, plot=False)
 
 
-ur5_sac()
+s = np.random.randint(0, 1000)
+ur5_sac(seed=521)

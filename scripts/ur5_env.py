@@ -1,3 +1,4 @@
+import sys
 import time
 
 import numpy as np
@@ -6,6 +7,7 @@ from collections import OrderedDict
 import warnings
 warnings.filterwarnings("ignore")
 
+import rtde_io
 import rtde_control
 import rtde_receive
 
@@ -20,6 +22,7 @@ MUZ = -0.508
 
 # Connection
 UR5IP = "192.168.0.102"
+# io = rtde_io.RTDEIOInterface(UR5IP)
 c = rtde_control.RTDEControlInterface(UR5IP)
 r = rtde_receive.RTDEReceiveInterface(UR5IP)
 
@@ -79,9 +82,12 @@ def initialize_target_teach():
     return init_qpos, init_qvel, target
 
 
+# init_qpos = [0.05649304156930342, -0.3758193992621653, 0.23777181518273438, -2.9876820047633994, 0.9229206730917303, 0.0027145060149046858]
+# c.moveL(init_qpos)
+
 def initialize_target():
-    init_qpos = [0.05649304156930342, -0.3758193992621653, 0.23777181518273438, -2.9876820047633994, 0.9229206730917303, 0.0027145060149046858]
-    target = [5.74955744e-02, -3.74280655e-01, 2.09995799e-01, 3.00065647e+00, -9.26503897e-01, 1.99188108e-04]
+    init_qpos = r.getActualTCPPose() #[0.05725087622580927, -0.3731227489723776, 0.242, -1.1947490794358302, -2.897899633003305, -0.00242631993292831]
+    target = [0.05723768954291797, -0.37317080968906796, 0.21202079879304652, -1.1952487756507504, -2.897753284713638, -0.001665361313775619]
     # print(f"targetTCP: {target}")
     init_qvel = [0, 0, 0, 0, 0, 0]
 
@@ -107,17 +113,20 @@ def align_offset(q_init):
     c.moveL(q_path2, vel, acc)
     c.moveL(q_path3, vel, acc)
 
+    sys.stdout.write('\033[2K\033[1G')
     print("Aligning")
 
     q = r.getActualTCPPose()
     q_aliigned = (q[0], q[1], q[2], np.pi, 0, 0)
 
+    sys.stdout.write('\033[2K\033[1G')
     print("Offset")
 
     c.moveL(q_aliigned, TCPdmax, TCPddmax)
     c.moveUntilContact([0, 0, -0.01, 0, 0, 0])
     offset = r.getActualTCPPose()[2]
 
+    sys.stdout.write('\033[2K\033[1G')
     print("Moving")
 
     path = [q_path3, q_path2, q_path1, q_init]
@@ -126,17 +135,13 @@ def align_offset(q_init):
     c.moveL(q_path1, vel, acc)
     c.moveL(q_init, vel, acc)
 
+    sys.stdout.write('\033[2K\033[1G')
     print(f"Offset: {offset}")
 
     return offset
 
-offset =  0.18619462922513869
-# offset = align_offset([0.0787245789939134, -0.33986525591765276, 0.24093064058207303, 3.000646684670453, -0.926591058461939, 0.0002493975367802343])
-
-pos = r.getActualTCPPose()
-pos[3] += 0.1
-c.moveL(pos, TCPdmax, TCPddmax)
-c.moveL([0.05649304156930342, -0.3758193992621653, 0.23777181518273438, -2.9876820047633994, 0.9229206730917303, 0.0027145060149046858], TCPdmax, TCPddmax)
+offset =  0.18756524024506743
+# offset = align_offset([5.74918477e-02, -3.74263917e-01, 2.4090970e-01, 3.00072744e+00, -9.26571906e-01, 2.10862988e-04])
 
 class UR5Env(gym.Env, utils.EzPickle):
     """Real UR5 Environment Implementation"""
@@ -151,9 +156,9 @@ class UR5Env(gym.Env, utils.EzPickle):
 
         self.offset = offset
         self.init_qpos, self.init_qvel, target = initialize_target()
-        self.target = np.asarray(target[:3]) - np.asarray((0, 0, self.offset))
+        self.target = np.asarray(target) - np.asarray((0, 0, self.offset, 0, 0, 0))
         # print(f"targetSITE: {self.target}")
-        self.dist_max = 0.0006*300*np.sqrt(3)
+        self.dist_max = 0.0006*50*np.sqrt(3)
 
         self.direction_init = R.from_rotvec(self.init_qpos[3:6])
         self.tcp_frame_init = self.direction_init.apply(ref_frame)
@@ -167,6 +172,7 @@ class UR5Env(gym.Env, utils.EzPickle):
 
         self.set_action_space()
         action = self.action_space.sample()
+        # self.dp = np.asarray(c.poseTrans(p_from=self.tcp_pose_init, p_from_to=self.tcp_pose_init))
         self.dp = np.zeros_like(action)
         self.dtheta = np.zeros_like(action[3:6])
 
@@ -176,8 +182,12 @@ class UR5Env(gym.Env, utils.EzPickle):
         self.set_observation_space(observation)
 
         self.seed()
+        sys.stdout.write("\033[K")
+        # print("END INIT")
 
     def step(self, action):
+
+        # print("STEP")
 
         # print(f"action: {action}")
 
@@ -192,49 +202,87 @@ class UR5Env(gym.Env, utils.EzPickle):
                 time.sleep(1)
                 site_pose = c.poseTrans(p_from=tcp_pose, p_from_to=tcp_to_site)
 
-        self.move(action)
+        self.diff_vector = site_pose - self.target
+        self.diff_vector = self.diff_vector[:3]
 
-        self.diff_vector = site_pose[:3] - self.target
+        # init_to_pose = np.array(c.poseTrans(p_from=self.tcp_pose_init, p_from_to=tcp_pose))
+        # print(f"init_to_pose: {init_to_pose}")
+        # init_to_target = np.array(c.poseTrans(p_from=self.tcp_pose_init, p_from_to=self.target))
+        # print(f"init_to_target: {init_to_target}")
+
 
         # print(f"diff_vector: {self.diff_vector}")
 
         dist = np.linalg.norm(self.diff_vector)
         # print(f"dist: {dist}")
 
-        if dist < 0.008:  # Millimiters
-            done = True
+        if dist < 0.005:  # Millimiters
             print("DONE!!!!!!!!!!!!!")
+            # io.setStandardDigitalOut(1, not(r.getActualDigitalOutputBits()))
+            self.move(np.concatenate([[0, 0, 1e-2], [0, 0, 0]]))
+            done = True
             reward_done = 1
+            # c.stopScript()
+            # c.disconnect()
 
         else:
             done = False
             reward_done = 0
+
 
         f = r.getActualTCPForce()
         # f = (f[0] - MUX, f[1] - MUY, f[2] - MUZ)
 
         force_v = np.linalg.norm(f[:3])
         torque_v = np.linalg.norm(f[3:6])
-        print(f"Force_Vector: {force_v}")
+        # print(f"Force_Vector: {force_v}")
+
+        if self.diff_vector[0] <= 0.001 and self.diff_vector[1] <= 0.001 and self.counter > 40 and self.counter % 3 != 0:
+            action = np.concatenate([[0, 0, 1e-3], [0, 0, 0]])
+
+        if force_v > 15:
+            reward_force = -1 / 300
+            # reward_force = 0
+            if len(action) != 0:
+                self.move(-3*action)
+                diff_direction = self.diff_vector/np.linalg.norm(self.diff_vector)
+                diff_direction = np.concatenate([diff_direction, r.getActualTCPPose()[3:6]])
+                # print(f"diff_direcrtion: {diff_direction}")
+                dir = np.concatenate([(-self.diff_vector[:2]/dist*0.8e-3), [0, 0, 0, 0]])
+                self.move(-dir)
+
+        else:
+            reward_force = 0
 
         if force_v > 20:
             done = True
-            print("Too much force")
             reward_done = -1
+            print("Too much force")
+
+        if self.counter % 3 == 0:
+            action = np.concatenate([(self.diff_vector / dist * 1e-3), [0, 0, 0]])
+
+        self.move(action)
 
         reward_pos = - (dist/self.dist_max)**0.2
 
-        reward = reward_pos + reward_done
+        reward = reward_pos + reward_done + reward_force
 
         self.counter += 1
+        # print(f"reward: {reward}")
 
         info = {}
         ob = self._get_obs()
 
+        # print("END STEP")
+
         return ob, reward, done, info
 
     def move(self, action):
+        # print("MOVE")
+        # print(f"action: {action}")
         self.dp += action
+
         xyz = R.from_euler('xyz', self.dp[3:6])
         self.dtheta = xyz.as_rotvec()
         pose = np.concatenate([self.dp[:3], self.dtheta])
@@ -242,9 +290,12 @@ class UR5Env(gym.Env, utils.EzPickle):
 
         # print(f"Action: {action}")
         # print(f"Target pose: {pose}")
+
         c.moveL(dp_to_pose, TCPdmax, TCPddmax)
+        # print("DONE MOVE")
 
     def _get_obs(self):
+        # print("GET_OBS")
 
         global ref_frame
 
@@ -302,30 +353,38 @@ class UR5Env(gym.Env, utils.EzPickle):
         return [seed]
 
     def reset_model(self):
+        # print("RESET_MODEL")
         self.counter = 0
 
-        c_xy = 0.05
-        c_z = 0.01
-        c_a = 0.1
+        c_xy = 0.01
+        c_z = 0.00
+        c_a = 0.0
 
         qpos = np.asarray(self.init_qpos)
-        qpos[:2] = self.init_qpos[:2] + self.np_random.uniform(low=-c_xy, high=c_xy, size=2)
-        qpos[2:3] = self.init_qpos[2:3] + self.np_random.uniform(low=-c_z, high=c_z, size=1)
-        qpos[3:6] = self.init_qpos[3:6] + self.np_random.uniform(low=-c_a, high=c_a, size=3)
+        qpos[:2] = self.init_qpos[:2] + np.random.uniform(low=-c_xy, high=c_xy, size=2)
+        qpos[2:3] = self.init_qpos[2:3] + np.random.uniform(low=-c_z, high=c_z, size=1)
+        qpos[3:6] = self.init_qpos[3:6] + np.random.uniform(low=-c_a, high=c_a, size=3)
+
+        # print("RESET_STRANGE")
+        now_pose = r.getActualTCPPose()
+        now_pose_high = [now_pose[0], now_pose[1], 0.30, now_pose[3], now_pose[4], 0]
+        qpos_high = [qpos[0], qpos[1], 0.30, qpos[3], qpos[4], qpos[5]]
+        c.moveL(now_pose_high, TCPdmax * 3, TCPddmax * 3)
+        c.moveL(qpos_high, TCPdmax * 3, TCPddmax * 3)
+        c.moveL(qpos, TCPdmax * 3, TCPddmax * 3)
 
         self.dp = np.zeros_like(self.init_qpos)
         self.dtheta = np.zeros(3)
-
-        c.moveL(r.getActualTCPPose() + [0, 0, 0.1, 0, 0, 0])
-        c.moveL(qpos, TCPdmax, TCPddmax)
 
         c.zeroFtSensor()
 
         return self._get_obs()
 
     def reset(self):
+        print("RESET")
+
         ob = self.reset_model()
-        return ob, {}
+        return ob
 
     # @property
     # def close(self):

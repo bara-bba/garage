@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""This is an example to resume training programmatically."""
+"""This is an example to resume training_22_forcelimited programmatically."""
 # pylint: disable=no-value-for-parameter
 import click
 
@@ -22,7 +22,7 @@ def resume_experiment(ctxt, saved_dir):
 
     """
     with TFTrainer(snapshot_config=ctxt) as trainer:
-        trainer.restore(from_dir=saved_dir, from_epoch=2000)
+        trainer.restore(from_dir=saved_dir)
         trainer.resume()
 
 

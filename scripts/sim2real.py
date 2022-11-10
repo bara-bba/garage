@@ -6,7 +6,7 @@ from garage.envs import normalize, GymEnv
 
 from ur5_env import UR5Env
 
-param_dir = "/home/bara/PycharmProjects/garage/data/local/experiment/sac_2_normalized"
+param_dir = "/home/bara/PycharmProjects/garage/data/local/experiment/training_16"
 snapshotter = Snapshotter()
 
 with tf.compat.v1.Session() as sess:

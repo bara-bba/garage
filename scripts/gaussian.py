@@ -3,7 +3,7 @@ from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 from numpy import genfromtxt
 
-ur_force = genfromtxt("/home/bara/Dropbox/Camozzi-POLIMI project weekly meetings/Lorenzo Barattin/ur5_force.csv",
+ur_force = genfromtxt("/home/bara/PycharmProjects/garage/ur5_force.csv",
                 delimiter=',')
 # panda = genfromtxt("/home/bara/PycharmProjects/garage/panda_force.csv",
 #                    delimiter=',')
@@ -16,12 +16,14 @@ def estimate(x, n):
     sigma = sum((x - mean) ** 2)/n
     return mean, sigma
 
-ur0 = ur_force[:, 1]
-ur1 = ur_force[:, 2]
-ur2 = ur_force[:, 3]
-ur3 = ur_force[:, 4]
-ur4 = ur_force[:, 5]
-ur5 = ur_force[:, 6]
+MAX = 1
+
+ur0 = ur_force[:MAX, 1]
+ur1 = ur_force[:MAX, 2]
+ur2 = ur_force[:MAX, 3]
+ur3 = ur_force[:MAX, 4]
+ur4 = ur_force[:MAX, 5]
+ur5 = ur_force[:MAX, 6]
 
 # panda0 = panda[:, 0]
 # panda1 = panda[:, 1]

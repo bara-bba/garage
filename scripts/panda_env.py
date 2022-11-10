@@ -16,7 +16,6 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
     def __init__(self):
         self.counter = 0
         self.reward_force = 0
-        self.force_sum = 0
         self.dist_max = 0.0006*300*np.sqrt(3)
         mujoco_env.MujocoEnv.__init__(self, "/home/bara/PycharmProjects/garage/panda/insert_base.xml", 100)
 
@@ -44,17 +43,20 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         # Force Reward
         f = self.sim.data.sensordata.flat[:]
 
-        force_v = np.linalg.norm(f[:3])/5           # 5 max force, normalization
+        force_v = np.linalg.norm(f[:3])     # 5 max force, normalization
         torque_v = np.linalg.norm(f[3:6])
 
-        self.force_sum += force_v
-        self.reward_force = np.mean(self.force_sum)
+        if force_v > 5:
+            reward_force = -1/300
+            print("ForceTH")
+        else:
+            reward_force = 0
 
         # print(f"reward_force: {self.reward_force}")
 
         reward_pos = -(dist/self.dist_max)**0.2
         # reward_pos = -dist
-        reward = reward_pos + reward_done           # - self.reward_force/10
+        reward = reward_pos + reward_done - reward_force
 
         # print(f"reward_pos: {reward_pos}")
         # print(f"reward_done: {reward_done}")
@@ -92,15 +94,17 @@ class PandaEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
     def reset_model(self):
         qpos = np.asarray(self.init_qpos)
-        c_xy = 0.05
-        c_z = 0.01
-        c_a = 0.1
+        c_xy = 0.00
+        c_z = 0.00
+        c_a = 0.0
+        c_offset = 0.015
+        init_offset = 0.185 #still to be implemented
         self.counter = 0
-        self.force_sum = 0
         qpos[:2] = self.np_random.uniform(low=-c_xy, high=c_xy, size=2)
         qpos[2:3] = self.np_random.uniform(low=-c_z, high=c_z, size=1)
         qpos[3:6] = self.np_random.uniform(low=-c_a, high=c_a, size=3)
         qvel = np.zeros(self.model.nv)
+        q_offset = init_offset + self.np_random.uniform(low=-c_offset, high=c_offset, size=1)
         self.set_state(qpos, qvel)
         return self._get_obs()
 

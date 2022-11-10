@@ -25,7 +25,7 @@ from panda_env import PandaEnv
 
 @wrap_experiment(snapshot_mode='last')
 def garage_td3_panda(ctxt=None, seed=1):
-    """Wrap TD3 training task in the run_task function.
+    """Wrap TD3 training_22_forcelimited task in the run_task function.
 
     Args:
         ctxt (garage.experiment.ExperimentContext): The experiment

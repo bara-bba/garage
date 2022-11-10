@@ -62,7 +62,7 @@ if __name__ == '__main__':
         with open(args.file, 'rb') as pickle_file:
             data = cloudpickle.load(pickle_file)
             policy = data['algo'].policy
-            env = normalize(GymEnv(PandaEnv()))
+            env = normalize(GymEnv(PandaEnv()), normalize_reward=True, normalize_obs=True)
             while True:
                 path = rollout(env,
                                policy,

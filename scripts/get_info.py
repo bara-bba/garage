@@ -38,28 +38,13 @@ t = 0
 
 for i in range(1000):
 
-    env.sim.data.ctrl[0] = 0.01          # panda_x
+    env.sim.data.ctrl[0] = 0         # panda_x
     env.sim.data.ctrl[1] = 0          # panda_y
     env.sim.data.ctrl[2] = 0         # panda_z
 
     env.sim.data.ctrl[3] = 0          # panda_ball_1
     env.sim.data.ctrl[4] = 0          # panda_ball_2    --> IN QPOS WRITTEN AS QUATERNION!
     env.sim.data.ctrl[5] = 0          # panda_ball_3
-
-
-    # RADIANS
-    print("X" + str(env.sim.model.joint_name2id("insert_x")) + ": " + str(env.sim.data.qpos.flat[0]))
-    print("Y" + str(env.sim.model.joint_name2id("insert_y")) + ": " + str(env.sim.data.qpos.flat[1]))
-    print("Z" + str(env.sim.model.joint_name2id("insert_z")) + ": " + str(env.sim.data.qpos.flat[2]))
-    print("a" + str(env.sim.model.joint_name2id("insert_ball_1")) + ": " + str(env.sim.data.qpos.flat[3]))
-    print("b" + str(env.sim.model.joint_name2id("insert_ball_2")) + ": " + str(env.sim.data.qpos.flat[4]))
-    print("c" + str(env.sim.model.joint_name2id("insert_ball_3")) + ": " + str(env.sim.data.qpos.flat[5]))
-
-
-    # print(np.shape(env.sim.data.qpos))
-
-    # r = R.from_quat(env.sim.data.qpos[3:])
-    # state = np.hstack([env.sim.data.qpos[:3], r.as_euler('xyz', degrees=True)]) #CONVERSION BTW RELATIVE AND ABSOLUTE POS ROTATION MATRIX; SEE XML FRAMES!
 
     state = env.sim.data.qpos
 
@@ -68,13 +53,16 @@ for i in range(1000):
 
     xpos_base = env.sim.data.get_site_xpos("base_site")
     xpos_insert = env.sim.data.get_site_xpos("insert_site")
-
-    print(xpos_base)
+    xpos_tcp = env.sim.data.get_site_xpos("ee_site")
 
     distance = np.linalg.norm(xpos_insert - xpos_base)
 
-    print("BASE_SITE: " + str(xpos_base))
-    print("INSERT_SITE: " + str(xpos_insert))
+
+    print("BASE_SITE: " + str(xpos_base-xpos_base))
+    print("INSERT_SITE: " + str(xpos_insert-xpos_base))
+    print("TCP_SITE: " + str(xpos_tcp-xpos_base))
+
+    print(xpos_insert-xpos_tcp)
 
     print("DISTANCE: " + str(distance))
 
